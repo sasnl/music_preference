@@ -1,0 +1,38 @@
+2025-07-29 14:00:06,625 - INFO - Batch music preprocessing started. Input: /Users/tongshan/Documents/music_preference/music_stim/original, Output: /Users/tongshan/Documents/music_preference/music_stim/preprocesed
+2025-07-29 14:00:06,625 - INFO - Trim mode: Disabled (preserve original length)
+2025-07-29 14:00:06,626 - INFO - Found 15 audio files to process.
+2025-07-29 14:00:08,398 - INFO - Preserved original audio length: 363.47 seconds
+2025-07-29 14:00:08,480 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 2  Raj/2-3.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 2  Raj/2-3_proc.wav | Success
+2025-07-29 14:00:09,489 - INFO - Preserved original audio length: 397.32 seconds
+2025-07-29 14:00:09,572 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 2  Raj/2-2.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 2  Raj/2-2_proc.wav | Success
+2025-07-29 14:00:09,710 - INFO - Preserved original audio length: 0.01 seconds
+2025-07-29 14:00:09,711 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 2  Raj/2-1.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 2  Raj/2-1_proc.wav | Success
+2025-07-29 14:00:10,252 - INFO - Preserved original audio length: 229.13 seconds
+2025-07-29 14:00:10,310 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 3 Ruiqi/3-1.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 3 Ruiqi/3-1_proc.wav | Success
+2025-07-29 14:00:10,962 - INFO - Preserved original audio length: 253.28 seconds
+2025-07-29 14:00:11,021 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 3 Ruiqi/3-3.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 3 Ruiqi/3-3_proc.wav | Success
+2025-07-29 14:00:11,645 - WARNING - pydub failed to decode /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 3 Ruiqi/3-2.mp3, trying ffmpeg re-encoding...
+2025-07-29 14:00:11,905 - INFO - Successfully re-encoded /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 3 Ruiqi/3-2.mp3 using ffmpeg
+2025-07-29 14:00:12,200 - INFO - Preserved original audio length: 227.09 seconds
+2025-07-29 14:00:12,245 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 3 Ruiqi/3-2.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 3 Ruiqi/3-2_proc.wav | Success
+2025-07-29 14:00:12,834 - INFO - Preserved original audio length: 237.08 seconds
+2025-07-29 14:00:12,887 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 5 Jared/5-1.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 5 Jared/5-1_proc.wav | Success
+2025-07-29 14:00:13,479 - INFO - Preserved original audio length: 232.34 seconds
+2025-07-29 14:00:13,526 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 5 Jared/5-3.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 5 Jared/5-3_proc.wav | Success
+2025-07-29 14:00:14,134 - INFO - Preserved original audio length: 228.95 seconds
+2025-07-29 14:00:14,182 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 5 Jared/5-2.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 5 Jared/5-2_proc.wav | Success
+2025-07-29 14:00:14,747 - INFO - Preserved original audio length: 217.41 seconds
+2025-07-29 14:00:14,790 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 4 Claire/4-3.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 4 Claire/4-3_proc.wav | Success
+2025-07-29 14:00:15,417 - WARNING - pydub failed to decode /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 4 Claire/4-2.mp3, trying ffmpeg re-encoding...
+2025-07-29 14:00:15,768 - INFO - Successfully re-encoded /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 4 Claire/4-2.mp3 using ffmpeg
+2025-07-29 14:00:16,139 - INFO - Preserved original audio length: 301.07 seconds
+2025-07-29 14:00:16,197 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 4 Claire/4-2.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 4 Claire/4-2_proc.wav | Success
+2025-07-29 14:00:16,739 - INFO - Preserved original audio length: 198.14 seconds
+2025-07-29 14:00:16,779 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 4 Claire/4-1.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 4 Claire/4-1_proc.wav | Success
+2025-07-29 14:00:17,394 - INFO - Preserved original audio length: 252.42 seconds
+2025-07-29 14:00:17,446 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 1 Audrey/1-2.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 1 Audrey/1-2_proc.wav | Success
+2025-07-29 14:00:18,057 - INFO - Preserved original audio length: 243.23 seconds
+2025-07-29 14:00:18,119 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 1 Audrey/1-3.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 1 Audrey/1-3_proc.wav | Success
+2025-07-29 14:00:19,037 - INFO - Preserved original audio length: 379.25 seconds
+2025-07-29 14:00:19,114 - INFO - Processed: /Users/tongshan/Documents/music_preference/music_stim/original/Pilot 1 Audrey/1-1.mp3 -> /Users/tongshan/Documents/music_preference/music_stim/preprocesed/Pilot 1 Audrey/1-1_proc.wav | Success
+2025-07-29 14:00:19,117 - INFO - Batch processing completed.
