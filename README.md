@@ -1,35 +1,48 @@
-# music_preference
-music preference study
+# Music Preference Study
 
-# Participants onboarding
+## Table of Contents
+- [Participants onboarding](#participants-onboarding)
+  - [Musicianship Questionnaire](#musicianship-questionnaire)
+  - [Everyone choose 3 of their favorite songs](#everyone-choose-3-of-their-favorite-songs)
+  - [Music stimuli preprocessing](#music-stimuli-preprocessing)
+- [Experiment procedure](#experiment-procedure)
+  - [5-min click trains](#5-min-click-trains)
+  - [Latin randomized chosen songs](#latin-randomized-chosen-songs)
+  - [Behavioral questions following each song](#behavioral-questions-following-each-song)
+    - [Pleasantness](#pleasantness)
+    - [Valence/Arousal](#valencearousal)
+    - [Musical Chills](#musical-chills)
+    - [Preference for the Song](#preference-for-the-song)
 
-## [Musicianship Questionnair]()
+## Participants onboarding
 
-## Everyone choose 3 of their favorite songs
+### [Musicianship Questionnair]()
+
+### Everyone choose 3 of their favorite songs
 [Song list](https://docs.google.com/spreadsheets/d/1YDDWKmQ6O3HpwoQeA3kcLaOXuhWvbGlxDFgny0Mv1zk/edit?gid=0#gid=0)
 
 - total length of music: 68:02
 
-## Music stimli preprocessing
+### Music stimli preprocessing
 
 
-# Experiment procedure
-## 5-min click trains
-## Latin randomized chosen songs
+## Experiment procedure
+### 5-min click trains
+### Latin randomized chosen songs
 - Participants will passively listening to the songs, while EEG recording with both ABR+Cortical system
 - EEG recording at 10k Hz / 25k Hz
 - Stimlus presentation at 48k Hz
-## Behavioral questions following each song
+### Behavioral questions following each song
 - in stimlus presentation script, question pop up when a song ends
-### Pleasantness
+#### Pleasantness
  How pleasant or unpleasant did you find the song?
  (1 = Extremely unpleasant, 9 = Extremely pleasant)
-### Valence/Arousal
+#### Valence/Arousal
  How emotionally intense or stimulating was the song for you?
  (1 = Not intense or stimulating at all, 9 = Extremely intense or stimulating)
-### Musical Chills
+#### Musical Chills
  To what extent did you feel chills, goosebumps, or a strong emotional reaction while listening to the song?
  (1 = Not at all, 9 = Very strongly)
-### Preference for the Song
+#### Preference for the Song
  How much did you like or enjoy the song overall?
  (1 = Not at all, 9 = Very much)
