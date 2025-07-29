@@ -39,17 +39,18 @@ conda activate music_preproc
 ```
 2. run this line in terminal:
 ```python
-python code/stimulus_presentation/music_batch_preproc.py --input_dir music_stim/original --output_dir music_stim/preprocesed --no-trim
+python code/stimulus_presentation/music_batch_preproc.py --input_dir music_stim/original --output_dir music_stim/preprocesed --no_trim
 ```
-
 ## Experiment procedure
-### 5-min click trains: [`/click_stim`]()
+### 5-min click trains: [`/click_stim`](https://github.com/sasnl/music_preference/tree/main/click_stim)
 ### Latin square randomized chosen songs
+- code to generate randomized song order: `generate_music_orders.py`. Generated order file: `music_presentation_orders.csv`
 - Participants will passively listening to the songs, while EEG recording with both ABR+Cortical system
 - EEG recording at 10k Hz / 25k Hz
 - Stimlus presentation at 48k Hz
+run the script on stimlus computer: [`music_presentation_ariya.py`]()
 ### Behavioral questions following each song
-- in stimlus presentation script, question pop up when a song ends
+- in stimlus presentation script, questions pop up when a song ends
 #### Pleasantness
  How pleasant or unpleasant did you find the song?
  (1 = Extremely unpleasant, 9 = Extremely pleasant)

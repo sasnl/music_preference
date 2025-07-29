@@ -81,4 +81,4 @@ venv.bak/
 *.hdf5
 
 # Logs
-*.log 
+*.log music_presentation_report.txt

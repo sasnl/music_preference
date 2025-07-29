@@ -114,7 +114,7 @@ n_bits_type = int(np.ceil(np.log2(n_type_music + n_type_speech + 1)))  # +1 mean
 trial_start_time = -np.inf # time of the start of the trial
 
 with ExperimentController('music_diverse_abr', verbose=True, screen_num=0,
-                          window_size=[1920, 1080], full_screen=False,
+                          full_screen=True,
                           stim_db=stim_db, stim_fs=fs,
                           session='study', version='dev',
                           check_rms='wholefile', n_channels=n_channel,
