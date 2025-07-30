@@ -48,9 +48,12 @@ python code/stimulus_presentation/music_batch_preproc.py --input_dir music_stim/
 - Participants will passively listening to the songs, while EEG recording with both ABR+Cortical system
 - EEG recording at 10k Hz / 25k Hz
 - Stimlus presentation at 48k Hz
-run the script on stimlus computer: [`music_presentation_ariya.py`]()
+run the script on stimlus computer: [`music_preference_presentation.py`]()
 ### Behavioral questions following each song
 - in stimlus presentation script, questions pop up when a song ends
+#### Preference for the Song
+ How much did you like or enjoy the song overall?
+ (1 = Not at all, 9 = Very much)
 #### Pleasantness
  How pleasant or unpleasant did you find the song?
  (1 = Extremely unpleasant, 9 = Extremely pleasant)
@@ -60,6 +63,3 @@ run the script on stimlus computer: [`music_presentation_ariya.py`]()
 #### Musical Chills
  To what extent did you feel chills, goosebumps, or a strong emotional reaction while listening to the song?
  (1 = Not at all, 9 = Very strongly)
-#### Preference for the Song
- How much did you like or enjoy the song overall?
- (1 = Not at all, 9 = Very much)
