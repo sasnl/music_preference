@@ -39,7 +39,8 @@ file_path = exp_path+"music_stim/preprocesed/"  # Corrected path to preprocessed
 click_path = exp_path+"click_stim/"
 
 #%% click setting: TRUE for click session, FALSE for no click session
-click = False 
+click_input = input("Enable click session? (y/n): ").strip().lower()
+click = True if click_input == 'y' else False
 # click epochs setting
 n_epoch_click = 5 # number of click epochs
 click_dur = 60 # duration of each click epoch
@@ -206,14 +207,30 @@ with ExperimentController(**ec_args) as ec:
         responses = {}
 
         for q in questions:
-            ec.screen_text(q["prompt"], pos=[0, 0.2], color='w')
-            ec.screen_text(q["left"], pos=[-0.2, 0], color='w')
-            ec.screen_text(q["right"], pos=[1.3, 0], color='w')
+            # Adjusted positions for 2560x1440 screen, better alignment and fitting
+            # Use normalized units: x in [-1,1], y in [-1,1]
+            ec.screen_text(q["prompt"], pos=[0, 0.7], units='norm', color='w')
+            # Place "left" and "right" labels just outside the first and last circle
+            left_label_x = -0.7
+            right_label_x = 0.7
+            circles_y = -0.2
+            number_y = -0.08  # number above the circle
+
+            ec.screen_text(q["left"], pos=[left_label_x, circles_y], units='norm', color='w', anchor='center')
+            ec.screen_text(q["right"], pos=[right_label_x, circles_y], units='norm', color='w', anchor='center')
+
+            # Place 9 circles evenly between left_label_x and right_label_x
+            n_circles = 9
+            circle_spacing = (right_label_x - left_label_x) / (n_circles - 1)
+            circle_radius = (0.045, 0.07)  # slightly larger for visibility
+
             init_circles = []
-            for i in range(9):
-                init_circles += [Circle(ec, radius=(0.02, 0.03), pos=((-1+(i+1)*0.22), -0.25), units='norm',
+            for i in range(n_circles):
+                x_pos = left_label_x + i * circle_spacing
+                init_circles += [Circle(ec, radius=circle_radius, pos=(x_pos, circles_y), units='norm',
                                         fill_color=None, line_color='white', line_width=5)]
-                ec.screen_text(str(i+1), pos=[(i)*0.22+0.04, -0.15], units='norm', color='w')
+                # Draw number above the circle, centered
+                ec.screen_text(str(i+1), pos=[x_pos, number_y], units='norm', color='w', anchor='center')
             for c in init_circles:
                 c.draw()
             ec.flip()
