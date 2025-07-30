@@ -207,8 +207,6 @@ with ExperimentController(**ec_args) as ec:
 
         for q in questions:
             ec.screen_text(q["prompt"], pos=[0, 0.2], color='w')
-            ec.screen_text(q["left"], pos=[-0.2, 0], color='w')
-            ec.screen_text(q["right"], pos=[1.3, 0], color='w')
             init_circles = []
             for i in range(9):
                 init_circles += [Circle(ec, radius=(0.02, 0.03), pos=((-1+(i+1)*0.22), -0.25), units='norm',
