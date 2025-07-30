@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Jul 29 2025
+Music Preference Experiment Presentation Script
+
+This script presents music stimuli to participants and collects behavioral responses.
+It uses the randomized music order from CSV file and presents questions after each song.
 
 @author: Tong, Ariya
 """
@@ -26,13 +29,13 @@ do_click = True # whether to play click sound before music
 fs = 48000
 n_channel = 2
 rms = 0.01
-stim_db = 65 #????
+stim_db = 65
 
 pause_dur = 1  # pause duration between each epoch
 
 # %% Load music and click stimuli
 exp_path = ""
-file_path = exp_path+"music_stim/"
+file_path = exp_path+"music_stim/preprocesed/"  # Corrected path to preprocessed files
 click_path = exp_path+"click_stim/"
 
 #%% click setting: TRUE for click session, FALSE for no click session
@@ -48,12 +51,37 @@ for c in range(n_epoch_click):
    click_data += [temp[0]]
 
 # Load music stimuli in order of music_presentation_orders.csv and participant ID
-participant_id = input("Enter participant ID: ")
-orders_df = pd.read_csv(exp_path+"stimulus_presentation/music_presentation_orders.csv")
-stim_df = orders_df[orders_df['participant_id'] == participant_id]
+participant_id = input("Enter participant ID (1-5): ")
+
+# Load and validate CSV data
+csv_path = exp_path+"code/stimulus_presentation/music_presentation_orders.csv"
+if not os.path.exists(csv_path):
+    raise FileNotFoundError(f"CSV file not found: {csv_path}")
+
+orders_df = pd.read_csv(csv_path)
+stim_df = orders_df[orders_df['Participant_ID'] == int(participant_id)]
+
+if stim_df.empty:
+    raise ValueError(f"No data found for participant ID: {participant_id}")
+
+print(f"Found {len(stim_df)} songs for participant {participant_id}")
+
+# Extract stimulus information
 stim_name_list = stim_df['Song_File'].tolist()
-stim_path_list = [os.path.join(file_path, stim_name) for stim_name in stim_name_list]
 stim_dur_list = stim_df['Duration_Seconds'].tolist()
+
+# Build file paths using original participant information
+stim_path_list = []
+for _, row in stim_df.iterrows():
+    original_participant = row['Original_Participant']
+    song_file = row['Song_File']
+    # Construct path: music_stim/preprocesed/{original_participant}/{song_file}
+    file_path_full = os.path.join(file_path, str(original_participant), song_file)
+    stim_path_list.append(file_path_full)
+    
+    # Verify file exists
+    if not os.path.exists(file_path_full):
+        print(f"Warning: File not found: {file_path_full}")
 
 # %%
 click_instruction = ('Hi, thank you for participating this study!'
@@ -117,10 +145,18 @@ with ExperimentController(**ec_args) as ec:
         # Draw progress bar
         ec.screen_text('Trial number ' + str(ei+1) + ' out of ' + str(int(n_epoch_total)) + ' trials.')
         pb.draw()
+        
         # Load trial parameters
-        trial_id = os.path.basename(stim_df.loc[ei, 'Song_File'])
-        temp, fs = read_wav(stim_df.loc[ei, 'Song_file'])
-        trial_dur = stim_df.loc[ei, 'duration']
+        trial_id = os.path.basename(stim_df.iloc[ei]['Song_File'])
+        song_file_path = stim_path_list[ei]
+        trial_dur = stim_df.iloc[ei]['Duration_Seconds']
+        
+        # Load audio file
+        try:
+            temp, fs = read_wav(song_file_path)
+        except Exception as e:
+            print(f"Error loading file {song_file_path}: {e}")
+            continue
 
         # Load buffer, define trial
         ec.load_buffer(temp)
@@ -200,6 +236,8 @@ with ExperimentController(**ec_args) as ec:
         trial_data = {
             "trial_num": ei,
             "trial_id": trial_id,
+            "song_file": stim_df.iloc[ei]['Song_File'],
+            "duration": trial_dur
         }
         trial_data.update(responses)
         ec.write_data_line("Trial data", trial_data)
