@@ -1,0 +1,109 @@
+Music Presentation Orders Report
+========================================
+Generated: 2025-07-29 18:29:32
+
+Total Participants: 5
+Total Songs: 75
+Songs per Participant: 15
+Total Duration: 18800.9 seconds (313.3 minutes)
+
+Participant: 1
+  Randomization Seed: 2959848976
+  Total Duration: 3760.2 seconds
+  Presentation Order:
+     1. 4-1_proc.wav (from 4) (198.1s)
+     2. 3-3_proc.wav (from 3) (253.3s)
+     3. 5-3_proc.wav (from 5) (232.3s)
+     4. 1-2_proc.wav (from 1) (252.4s)
+     5. 4-2_proc.wav (from 4) (301.1s)
+     6. 5-2_proc.wav (from 5) (228.9s)
+     7. 2-1_proc.wav (from 2) (0.0s)
+     8. 2-2_proc.wav (from 2) (397.3s)
+     9. 5-1_proc.wav (from 5) (237.1s)
+    10. 2-3_proc.wav (from 2) (363.5s)
+    11. 1-3_proc.wav (from 1) (243.2s)
+    12. 3-1_proc.wav (from 3) (229.1s)
+    13. 3-2_proc.wav (from 3) (227.1s)
+    14. 1-1_proc.wav (from 1) (379.3s)
+    15. 4-3_proc.wav (from 4) (217.4s)
+
+Participant: 2
+  Randomization Seed: 2604580632
+  Total Duration: 3760.2 seconds
+  Presentation Order:
+     1. 4-1_proc.wav (from 4) (198.1s)
+     2. 3-3_proc.wav (from 3) (253.3s)
+     3. 1-2_proc.wav (from 1) (252.4s)
+     4. 4-2_proc.wav (from 4) (301.1s)
+     5. 5-1_proc.wav (from 5) (237.1s)
+     6. 2-2_proc.wav (from 2) (397.3s)
+     7. 4-3_proc.wav (from 4) (217.4s)
+     8. 3-2_proc.wav (from 3) (227.1s)
+     9. 5-2_proc.wav (from 5) (228.9s)
+    10. 2-3_proc.wav (from 2) (363.5s)
+    11. 3-1_proc.wav (from 3) (229.1s)
+    12. 1-1_proc.wav (from 1) (379.3s)
+    13. 5-3_proc.wav (from 5) (232.3s)
+    14. 2-1_proc.wav (from 2) (0.0s)
+    15. 1-3_proc.wav (from 1) (243.2s)
+
+Participant: 3
+  Randomization Seed: 2933272670
+  Total Duration: 3760.2 seconds
+  Presentation Order:
+     1. 1-1_proc.wav (from 1) (379.3s)
+     2. 2-3_proc.wav (from 2) (363.5s)
+     3. 1-2_proc.wav (from 1) (252.4s)
+     4. 3-2_proc.wav (from 3) (227.1s)
+     5. 2-2_proc.wav (from 2) (397.3s)
+     6. 5-1_proc.wav (from 5) (237.1s)
+     7. 5-3_proc.wav (from 5) (232.3s)
+     8. 4-1_proc.wav (from 4) (198.1s)
+     9. 4-3_proc.wav (from 4) (217.4s)
+    10. 2-1_proc.wav (from 2) (0.0s)
+    11. 4-2_proc.wav (from 4) (301.1s)
+    12. 5-2_proc.wav (from 5) (228.9s)
+    13. 1-3_proc.wav (from 1) (243.2s)
+    14. 3-3_proc.wav (from 3) (253.3s)
+    15. 3-1_proc.wav (from 3) (229.1s)
+
+Participant: 4
+  Randomization Seed: 3727479855
+  Total Duration: 3760.2 seconds
+  Presentation Order:
+     1. 2-2_proc.wav (from 2) (397.3s)
+     2. 2-3_proc.wav (from 2) (363.5s)
+     3. 1-2_proc.wav (from 1) (252.4s)
+     4. 4-1_proc.wav (from 4) (198.1s)
+     5. 4-3_proc.wav (from 4) (217.4s)
+     6. 1-3_proc.wav (from 1) (243.2s)
+     7. 4-2_proc.wav (from 4) (301.1s)
+     8. 5-3_proc.wav (from 5) (232.3s)
+     9. 3-2_proc.wav (from 3) (227.1s)
+    10. 5-1_proc.wav (from 5) (237.1s)
+    11. 2-1_proc.wav (from 2) (0.0s)
+    12. 3-3_proc.wav (from 3) (253.3s)
+    13. 1-1_proc.wav (from 1) (379.3s)
+    14. 5-2_proc.wav (from 5) (228.9s)
+    15. 3-1_proc.wav (from 3) (229.1s)
+
+Participant: 5
+  Randomization Seed: 3194435888
+  Total Duration: 3760.2 seconds
+  Presentation Order:
+     1. 5-1_proc.wav (from 5) (237.1s)
+     2. 1-3_proc.wav (from 1) (243.2s)
+     3. 1-2_proc.wav (from 1) (252.4s)
+     4. 3-2_proc.wav (from 3) (227.1s)
+     5. 4-1_proc.wav (from 4) (198.1s)
+     6. 4-2_proc.wav (from 4) (301.1s)
+     7. 1-1_proc.wav (from 1) (379.3s)
+     8. 2-3_proc.wav (from 2) (363.5s)
+     9. 4-3_proc.wav (from 4) (217.4s)
+    10. 5-2_proc.wav (from 5) (228.9s)
+    11. 3-1_proc.wav (from 3) (229.1s)
+    12. 2-2_proc.wav (from 2) (397.3s)
+    13. 3-3_proc.wav (from 3) (253.3s)
+    14. 5-3_proc.wav (from 5) (232.3s)
+    15. 2-1_proc.wav (from 2) (0.0s)
+
