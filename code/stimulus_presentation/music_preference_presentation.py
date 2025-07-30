@@ -209,41 +209,53 @@ with ExperimentController(**ec_args) as ec:
         for q in questions:
             # Adjusted positions for 2560x1440 screen, better alignment and fitting
             # Use normalized units: x in [-1,1], y in [-1,1]
-            ec.screen_text(q["prompt"], pos=[0, 0.7], units='norm', color='w')
+            # Display the question prompt at the center of the screen
+            ec.screen_text(q["prompt"], pos=[0.5, 0], units='norm', color='w')
+
+            # Define positions for left/right labels and circles
+            left_label_x = -0.3
+            right_label_x = 1.3
+            circles_y = -0.4
+            number_y = -0.28  # number above the circle
+
             # Place "left" and "right" labels just outside the first and last circle
-            left_label_x = -0.7
-            right_label_x = 0.7
-            circles_y = -0.2
-            number_y = -0.08  # number above the circle
+            ec.screen_text(q["left"], pos=[left_label_x, circles_y], units='norm', color='w')
+            ec.screen_text(q["right"], pos=[right_label_x, circles_y], units='norm', color='w')
 
-            ec.screen_text(q["left"], pos=[left_label_x, circles_y], units='norm', color='w', anchor='center')
-            ec.screen_text(q["right"], pos=[right_label_x, circles_y], units='norm', color='w', anchor='center')
-
-            # Place 9 circles evenly between left_label_x and right_label_x
+            # Place 9 small circles evenly between left_label_x and right_label_x
             n_circles = 9
             circle_spacing = (right_label_x - left_label_x) / (n_circles - 1)
-            circle_radius = (0.045, 0.07)  # slightly larger for visibility
+            circle_radius = (0.02, 0.03)  # smaller circle for better appearance
 
             init_circles = []
             for i in range(n_circles):
                 x_pos = left_label_x + i * circle_spacing
-                init_circles += [Circle(ec, radius=circle_radius, pos=(x_pos, circles_y), units='norm',
-                                        fill_color=None, line_color='white', line_width=5)]
+                init_circles.append(
+                    Circle(ec, radius=circle_radius, pos=(x_pos, circles_y), units='norm',
+                           fill_color=None, line_color='white', line_width=3)
+                )
                 # Draw number above the circle, centered
-                ec.screen_text(str(i+1), pos=[x_pos, number_y], units='norm', color='w', anchor='center')
+                ec.screen_text(str(i + 1), pos=[x_pos, number_y], units='norm', color='w')
             for c in init_circles:
                 c.draw()
             ec.flip()
             click, ind = ec.wait_for_click_on(init_circles, max_wait=np.inf)
+
+            # Show feedback: highlight the selected circle
             after_circles = []
-            for i in range(9):
+            for i in range(n_circles):
+                x_pos = left_label_x + i * circle_spacing
                 if i == ind:
-                    after_circles += [Circle(ec, radius=(0.02, 0.03), pos=((-1+(i+1)*0.22), -0.25), units='norm',
-                                             fill_color='white', line_color='white', line_width=5)]
+                    after_circles.append(
+                        Circle(ec, radius=(0.025, 0.04), pos=(x_pos, circles_y), units='norm',
+                               fill_color='white', line_color='white', line_width=3)
+                    )
                 else:
-                    after_circles += [Circle(ec, radius=(0.02, 0.03), pos=((-1+(i+1)*0.22), -0.25), units='norm',
-                                            fill_color=None, line_color='white', line_width=5)]
-                ec.screen_text(str(i+1), pos=[(i)*0.22+0.04, -0.15], units='norm', color='w')
+                    after_circles.append(
+                        Circle(ec, radius=circle_radius, pos=(x_pos, circles_y), units='norm',
+                               fill_color=None, line_color='white', line_width=3)
+                    )
+                ec.screen_text(str(i + 1), pos=[x_pos, number_y], units='norm', color='w')
             for c in after_circles:
                 c.draw()
             ec.flip()
