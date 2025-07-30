@@ -73,12 +73,12 @@ venv.bak/
 *~
 
 # Data files
-*.csv
-*.json
-*.pkl
-*.pickle
-*.h5
-*.hdf5
+#*.csv
+#*.json
+#*.pkl
+#*.pickle
+#*.h5
+#*.hdf5
 
 # Logs
 *.log music_presentation_report.txt
