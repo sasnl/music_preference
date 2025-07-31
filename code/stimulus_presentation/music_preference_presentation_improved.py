@@ -387,7 +387,7 @@ with ExperimentController(**ec_args) as ec:
             ec.flip()
             
             # Show feedback for a moment before moving to next question
-            ec.wait_secs(0.5)
+            ec.wait_secs(0.2)
             
             responses[q["varname"]] = ind + 1  # 1-based
            
