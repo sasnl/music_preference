@@ -5,7 +5,7 @@ Participant_ID,Presentation_Order,Song_File,Original_Participant,File_Path,Durat
 1,4,1-2_proc.wav,1,music_stim/preprocesed/1/1-2_proc.wav,252.42414583333334,2959848976
 1,5,4-2_proc.wav,4,music_stim/preprocesed/4/4-2_proc.wav,301.0699375,2959848976
 1,6,5-2_proc.wav,5,music_stim/preprocesed/5/5-2_proc.wav,228.94877083333333,2959848976
-1,7,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,0.008708333333333334,2959848976
+1,7,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,324.764458,2959848976
 1,8,2-2_proc.wav,2,music_stim/preprocesed/2/2-2_proc.wav,397.3166458333333,2959848976
 1,9,5-1_proc.wav,5,music_stim/preprocesed/5/5-1_proc.wav,237.07575,2959848976
 1,10,2-3_proc.wav,2,music_stim/preprocesed/2/2-3_proc.wav,363.472125,2959848976
@@ -27,7 +27,7 @@ Participant_ID,Presentation_Order,Song_File,Original_Participant,File_Path,Durat
 2,11,3-1_proc.wav,3,music_stim/preprocesed/3/3-1_proc.wav,229.13452083333334,2604580632
 2,12,1-1_proc.wav,1,music_stim/preprocesed/1/1-1_proc.wav,379.25152083333336,2604580632
 2,13,5-3_proc.wav,5,music_stim/preprocesed/5/5-3_proc.wav,232.338875,2604580632
-2,14,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,0.008708333333333334,2604580632
+2,14,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,324.764458,2604580632
 2,15,1-3_proc.wav,1,music_stim/preprocesed/1/1-3_proc.wav,243.22904166666666,2604580632
 3,1,1-1_proc.wav,1,music_stim/preprocesed/1/1-1_proc.wav,379.25152083333336,2933272670
 3,2,2-3_proc.wav,2,music_stim/preprocesed/2/2-3_proc.wav,363.472125,2933272670
@@ -38,7 +38,7 @@ Participant_ID,Presentation_Order,Song_File,Original_Participant,File_Path,Durat
 3,7,5-3_proc.wav,5,music_stim/preprocesed/5/5-3_proc.wav,232.338875,2933272670
 3,8,4-1_proc.wav,4,music_stim/preprocesed/4/4-1_proc.wav,198.135875,2933272670
 3,9,4-3_proc.wav,4,music_stim/preprocesed/4/4-3_proc.wav,217.4084375,2933272670
-3,10,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,0.008708333333333334,2933272670
+3,10,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,324.764458,2933272670
 3,11,4-2_proc.wav,4,music_stim/preprocesed/4/4-2_proc.wav,301.0699375,2933272670
 3,12,5-2_proc.wav,5,music_stim/preprocesed/5/5-2_proc.wav,228.94877083333333,2933272670
 3,13,1-3_proc.wav,1,music_stim/preprocesed/1/1-3_proc.wav,243.22904166666666,2933272670
@@ -54,7 +54,7 @@ Participant_ID,Presentation_Order,Song_File,Original_Participant,File_Path,Durat
 4,8,5-3_proc.wav,5,music_stim/preprocesed/5/5-3_proc.wav,232.338875,3727479855
 4,9,3-2_proc.wav,3,music_stim/preprocesed/3/3-2_proc.wav,227.09116666666668,3727479855
 4,10,5-1_proc.wav,5,music_stim/preprocesed/5/5-1_proc.wav,237.07575,3727479855
-4,11,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,0.008708333333333334,3727479855
+4,11,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,324.764458,3727479855
 4,12,3-3_proc.wav,3,music_stim/preprocesed/3/3-3_proc.wav,253.28327083333335,3727479855
 4,13,1-1_proc.wav,1,music_stim/preprocesed/1/1-1_proc.wav,379.25152083333336,3727479855
 4,14,5-2_proc.wav,5,music_stim/preprocesed/5/5-2_proc.wav,228.94877083333333,3727479855
@@ -73,4 +73,4 @@ Participant_ID,Presentation_Order,Song_File,Original_Participant,File_Path,Durat
 5,12,2-2_proc.wav,2,music_stim/preprocesed/2/2-2_proc.wav,397.3166458333333,3194435888
 5,13,3-3_proc.wav,3,music_stim/preprocesed/3/3-3_proc.wav,253.28327083333335,3194435888
 5,14,5-3_proc.wav,5,music_stim/preprocesed/5/5-3_proc.wav,232.338875,3194435888
-5,15,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,0.008708333333333334,3194435888
+5,15,2-1_proc.wav,2,music_stim/preprocesed/2/2-1_proc.wav,324.764458,3194435888
