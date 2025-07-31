@@ -10,6 +10,7 @@ import shutil
 import sys
 import subprocess
 import tempfile
+import json
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Batch music preprocessing: mp3/wav to mono, flatten, normalize, resample, trim, with directory structure and logging.")
@@ -39,6 +40,31 @@ def check_ffmpeg():
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
+def detect_audio_format(file_path):
+    """Detect audio file format using ffprobe"""
+    try:
+        cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', file_path]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        data = json.loads(result.stdout)
+        
+        format_name = data.get('format', {}).get('format_name', '').lower()
+        codec_name = data.get('streams', [{}])[0].get('codec_name', '').lower() if data.get('streams') else ''
+        
+        # Check for DASH format
+        if 'dash' in format_name or 'dash' in str(data.get('format', {}).get('tags', {})):
+            return 'dash'
+        elif codec_name == 'aac' and format_name in ['mov,mp4,m4a,3gp,3g2,mj2']:
+            return 'aac_container'
+        elif file_path.lower().endswith('.mp3'):
+            return 'mp3'
+        elif file_path.lower().endswith('.wav'):
+            return 'wav'
+        else:
+            return 'unknown'
+    except Exception as e:
+        logging.warning(f"Could not detect format for {file_path}: {e}")
+        return 'unknown'
+
 def collect_audio_files(input_dir):
     audio_files = []
     for root, _, files in os.walk(input_dir):
@@ -64,12 +90,71 @@ def normalize_rms(audio, target_rms=0.01):
     current_rms = np.sqrt(np.mean(audio**2))
     return audio / current_rms * target_rms
 
+def validate_processed_audio(audio, fs, original_duration, logger):
+    """Validate that processed audio has reasonable properties"""
+    if len(audio) == 0:
+        logger.error("Processed audio is empty")
+        return False
+    
+    processed_duration = len(audio) / fs
+    if processed_duration < 0.1:  # Less than 100ms
+        logger.error(f"Processed audio too short: {processed_duration:.3f}s (expected ~{original_duration:.1f}s)")
+        return False
+    
+    if processed_duration > original_duration * 1.1:  # More than 10% longer
+        logger.warning(f"Processed audio longer than original: {processed_duration:.3f}s vs {original_duration:.3f}s")
+    
+    # Check for silent audio
+    if np.max(np.abs(audio)) < 1e-6:
+        logger.error("Processed audio is silent")
+        return False
+    
+    return True
+
 def process_and_save(input_path, output_path, trim_length, lowpass_fc, target_rms, no_trim, logger):
     try:
-        # Read audio file
-        if input_path.lower().endswith('.mp3'):
+        # Detect file format
+        file_format = detect_audio_format(input_path)
+        logger.info(f"Detected format for {input_path}: {file_format}")
+        
+        # Get original duration for validation
+        try:
+            cmd = ['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', input_path]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            original_duration = float(result.stdout.strip())
+        except:
+            original_duration = 300  # Default 5 minutes if we can't get duration
+        
+        # Read audio file based on format
+        if file_format in ['dash', 'aac_container']:
+            # Handle DASH/AAC files with specialized ffmpeg parameters
+            logger.info(f"Processing DASH/AAC file: {input_path}")
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+                temp_path = temp_file.name
+            
+            # Use specialized ffmpeg parameters for DASH files
+            cmd = [
+                'ffmpeg', '-i', input_path,
+                '-vn',  # No video
+                '-acodec', 'pcm_s16le',  # PCM 16-bit
+                '-ar', '48000',  # 48kHz sample rate
+                '-ac', '2',  # Stereo (will be converted to mono later)
+                '-y',  # Overwrite output
+                temp_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                logger.error(f"ffmpeg failed for DASH file {input_path}: {result.stderr}")
+                raise Exception(f"ffmpeg processing failed: {result.stderr}")
+            
+            # Read the converted file
+            audio, fs = sf.read(temp_path)
+            os.unlink(temp_path)  # Clean up temp file
+            
+        elif input_path.lower().endswith('.mp3'):
             try:
-                # Try pydub first
+                # Try pydub first for regular MP3 files
                 audio_segment = AudioSegment.from_mp3(input_path)
                 audio = np.array(audio_segment.get_array_of_samples())
                 if audio_segment.channels == 2:
@@ -82,32 +167,16 @@ def process_and_save(input_path, output_path, trim_length, lowpass_fc, target_rm
                     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                         temp_path = temp_file.name
                     
-                    # Use ffmpeg to re-encode the problematic mp3/DASH file
-                    # For YouTube DASH files, we need to handle them differently
-                    # First try to extract audio stream specifically
-                    cmd = ['ffmpeg', '-i', input_path, '-map', '0:a:0', '-vn', '-acodec', 'pcm_s16le', '-ar', '44100', '-ac', '2', temp_path, '-y']
+                    # Use ffmpeg to re-encode the problematic mp3 file
+                    cmd = ['ffmpeg', '-i', input_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '48000', '-ac', '2', temp_path, '-y']
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     
                     if result.returncode != 0:
-                        # Try alternative approach for DASH files
-                        logger.warning(f"First ffmpeg attempt failed, trying alternative approach...")
-                        cmd2 = ['ffmpeg', '-i', input_path, '-map', '0:a:0', '-vn', '-acodec', 'pcm_s16le', '-ar', '48000', '-ac', '2', temp_path, '-y']
-                        result2 = subprocess.run(cmd2, capture_output=True, text=True)
-                        
-                        if result2.returncode != 0:
-                            # Try without map parameter
-                            logger.warning(f"Second ffmpeg attempt failed, trying without map parameter...")
-                            cmd3 = ['ffmpeg', '-i', input_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '48000', '-ac', '2', temp_path, '-y']
-                            result3 = subprocess.run(cmd3, capture_output=True, text=True)
-                            
-                            if result3.returncode != 0:
-                                raise Exception(f"ffmpeg re-encoding failed: {result.stderr}, second attempt: {result2.stderr}, third attempt: {result3.stderr}")
+                        raise Exception(f"ffmpeg re-encoding failed: {result.stderr}")
                     
-                    # Read the re-encoded file (moved outside the if-else blocks)
+                    # Read the re-encoded file
                     audio, fs = sf.read(temp_path)
-                    
-                    # Clean up temporary file
-                    os.unlink(temp_path)
+                    os.unlink(temp_path)  # Clean up temp file
                     
                     logger.info(f"Successfully re-encoded {input_path} using ffmpeg")
                     
@@ -116,6 +185,10 @@ def process_and_save(input_path, output_path, trim_length, lowpass_fc, target_rm
         else:
             # For wav files, use soundfile
             audio, fs = sf.read(input_path)
+        
+        # Validate the loaded audio
+        if not validate_processed_audio(audio, fs, original_duration, logger):
+            raise Exception("Audio validation failed")
         
         # Convert to mono if stereo
         audio = stereo2mono(audio)
@@ -144,6 +217,10 @@ def process_and_save(input_path, output_path, trim_length, lowpass_fc, target_rm
                 audio = np.concatenate([audio, padding])
         else:
             logger.info(f"Preserved original audio length: {len(audio)/fs:.2f} seconds")
+        
+        # Final validation
+        if not validate_processed_audio(audio, fs, original_duration, logger):
+            raise Exception("Final audio validation failed")
         
         # Save processed audio
         sf.write(output_path, audio, fs)
