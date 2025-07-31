@@ -368,19 +368,25 @@ with ExperimentController(**ec_args) as ec:
             click, ind = ec.wait_for_click_on(ui_elements['circles'], max_wait=np.inf)
 
             # Show feedback: highlight the selected circle
-            for i, c in enumerate(ui_elements['circles']):
-                if i == ind:
-                    c.fill_color = 'white'
-                else:
-                    c.fill_color = None
-                c.draw()
-            
-            # Redraw numbers
+            after_circles = []
             for i in range(9):
-                ec.screen_text(str(i + 1), 
-                              pos=[ui_elements['number_circle_factor']+(0.09+i*ui_elements['circle_spacing']), 
-                                   ui_elements['number_y']], units='norm', color='w')
+                if i == ind:
+                    after_circles.append(
+                        Circle(ec, radius=(0.02, 0.03), pos=(ui_elements['number_circle_factor']+((-0.7 + (i*ui_elements['circle_spacing']))), ui_elements['number_y']-0.05), units='norm',
+                               fill_color='white', line_color='white', line_width=3)
+                    )
+                else:
+                    after_circles.append(
+                        Circle(ec, radius=(0.02, 0.03), pos=(ui_elements['number_circle_factor']+((-0.7 + (i*ui_elements['circle_spacing']))), ui_elements['number_y']-0.05), units='norm',
+                               fill_color=None, line_color='white', line_width=3)
+                    )
+                ec.screen_text(str(i + 1), pos=[ui_elements['number_circle_factor']+(0.09+i*ui_elements['circle_spacing']), ui_elements['number_y']], units='norm', color='w')
+            for c in after_circles:
+                c.draw()
             ec.flip()
+            
+            # Show feedback for a moment before moving to next question
+            ec.wait_secs(0.5)
             
             responses[q["varname"]] = ind + 1  # 1-based
            
