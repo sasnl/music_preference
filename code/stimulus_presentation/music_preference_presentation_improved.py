@@ -300,6 +300,7 @@ with ExperimentController(**ec_args) as ec:
         
         # Preload next song buffer in background during questions
         next_song_loaded = [False]  # Use list to allow modification in callback
+        loading_thread = None
         if ei < n_epoch_total - 1:  # Not the last song
             next_audio = audio_data[ei + 1]
             next_trial_id = os.path.basename(stim_df.iloc[ei + 1]['Song_File'])
@@ -310,7 +311,7 @@ with ExperimentController(**ec_args) as ec:
                     print(f"Warning: Failed to preload next song: {error}")
             
             # Start background loading
-            background_load_buffer(ec, next_audio, next_trial_id, on_buffer_loaded)
+            loading_thread = background_load_buffer(ec, next_audio, next_trial_id, on_buffer_loaded)
         
         # Ask preference and other questions (all 1-9 scale)
         ec.toggle_cursor(False)
@@ -393,11 +394,20 @@ with ExperimentController(**ec_args) as ec:
         # save data
         ec.write_data_line("responses", responses)
         
-        # If next song wasn't preloaded successfully, load it now with loading screen
-        if ei < n_epoch_total - 1 and not next_song_loaded[0]:
-            print("Loading next song buffer (fallback)...")
-            show_loading_screen(ec, "Loading next song...")
-            ec.load_buffer(audio_data[ei + 1])
+        # Wait for background loading to complete or show loading screen
+        if ei < n_epoch_total - 1:
+            if loading_thread and loading_thread.is_alive():
+                print("Background loading still in progress, waiting...")
+                show_loading_screen(ec, "Loading next song...")
+                # Wait for the thread to complete
+                loading_thread.join()
+                print("Background loading completed")
+            
+            # If loading failed, load it now
+            if not next_song_loaded[0]:
+                print("Loading next song buffer (fallback)...")
+                show_loading_screen(ec, "Loading next song...")
+                ec.load_buffer(audio_data[ei + 1])
         
         ec.trial_ok()
         ec.stop()
