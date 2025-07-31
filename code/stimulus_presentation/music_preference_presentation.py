@@ -9,6 +9,16 @@ It uses the randomized music order from CSV file and presents questions after ea
 @author: Tong, Ariya
 """
 
+# %%
+import os
+# Set environment variable before importing sounddevice. Value is not important.
+os.environ["SD_ENABLE_ASIO"] = "1"
+
+import sounddevice as sd
+sd.query_hostapis()
+sd.query_devices()
+
+# %%
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -34,12 +44,15 @@ stim_db = 65
 pause_dur = 1  # pause duration between each epoch
 
 # %% Load music and click stimuli
-exp_path = ""
+exp_path = "C:/Users/Admin/Desktop/music_preference/music_preference/"
 file_path = exp_path+"music_stim/preprocesed/"  # Corrected path to preprocessed files
 click_path = exp_path+"click_stim/"
 
+# %% Input participants ID
+participant_id = input("Enter participant ID (1-5): ")
+
 #%% click setting: TRUE for click session, FALSE for no click session
-click_input = input("Enable click session? (y/n): ").strip().lower()
+click_input = input("Do click session? (y/n)").strip().lower()
 click = True if click_input == 'y' else False
 # click epochs setting
 n_epoch_click = 5 # number of click epochs
@@ -52,8 +65,6 @@ for c in range(n_epoch_click):
    click_data += [temp[0]]
 
 # Load music stimuli in order of music_presentation_orders.csv and participant ID
-participant_id = input("Enter participant ID (1-5): ")
-
 # Load and validate CSV data
 csv_path = exp_path+"code/stimulus_presentation/music_presentation_orders.csv"
 if not os.path.exists(csv_path):
@@ -91,15 +102,16 @@ click_instruction = ('Hi, thank you for participating this study!'
                      '\n Press the SPACE bar to start the experiment.')
 music_instruction = ('Now you will hear the music.'
                     '\n After each music, you will be asked questions such as "how do you like the music?"' 
-                    '\n Please use your mouse to choose from a scale of 1 to 9 accordingly.')
+                    '\n Please use your mouse to choose from a scale of 1 to 9 accordingly.'
+                    '\n Press the SPACE bar to continue.')
 break_instruction = ('You can take a break after each song but not during the song.'
                     '\n Press the SPACE bar to continue.')
 
 # %% Experiment
 
-ec_args = dict(exp_name='Music Preference',
+ec_args = dict(exp_name='Music Preference', window_size=[2560, 1440],
                session='00', full_screen=True, n_channels=n_channel,
-               version='dev', enable_video=True, stim_fs=fs, stim_db=65,
+               version='dev', stim_fs=fs, stim_db=65,
                force_quit=['end'])
 trial_start_time = -np.inf
 
@@ -136,28 +148,36 @@ with ExperimentController(**ec_args) as ec:
 
             pb_click.update_bar((cn + 1) / n_epoch_click * 100) # update the progress bar
             pb_click.draw() # draw the updated progress bar
+    
 
     # %% Present music trials
+    trial_start_time = -np.inf
+    pb = ProgressBar(ec, [0, -.2, 1.5, .2], colors=('xkcd:teal blue', 'w'))
+
     ec.screen_prompt(music_instruction, live_keys=['space'])
     ec.screen_prompt(break_instruction, live_keys=['space'])
-
-    pb = ProgressBar(ec, [0, -.2, 1.5, .2], colors=('xkcd:teal blue', 'w'))
+    
     for ei in range(n_epoch_total):
-        # Draw progress bar
-        ec.screen_text('Trial number ' + str(ei+1) + ' out of ' + str(int(n_epoch_total)) + ' trials.')
-        pb.draw()
         
         # Load trial parameters
         trial_id = os.path.basename(stim_df.iloc[ei]['Song_File'])
         song_file_path = stim_path_list[ei]
         trial_dur = stim_df.iloc[ei]['Duration_Seconds']
         
+        print('load wav')
         # Load audio file
         try:
             temp, fs = read_wav(song_file_path)
         except Exception as e:
             print(f"Error loading file {song_file_path}: {e}")
             continue
+        print('load wav finished')
+        
+        print('draw progress bar')
+        # Draw progress bar
+        ec.screen_text('Trial number ' + str(ei+1) + ' out of ' + str(int(n_epoch_total)) + ' trials.')
+        pb.draw()
+        print('draw progress bar finished')
 
         # Load buffer, define trial
         ec.load_buffer(temp)
@@ -172,6 +192,12 @@ with ExperimentController(**ec_args) as ec:
             ec.check_force_quit()
             ec.wait_secs(0.1)
         ec.stop()
+        
+        
+        ec.write_data_line("Trial data", {"trial_num": ei,
+                                          "trial_id": trial_id,
+                                          "song_file": stim_df.iloc[ei]['Song_File'],
+                                          "duration": trial_dur})
         
         # Ask preference and other questions (all 1-9 scale)
         ec.toggle_cursor(False)
@@ -197,7 +223,7 @@ with ExperimentController(**ec_args) as ec:
                 "varname": "valence_arousal"
             },
             {
-                "prompt": "To what extent did you feel chills, goosebumps, or a strong emotional reaction while listening to the song?",
+                "prompt": "To what extent did you feel chills, goosebumps, \n or a strong emotional reaction while listening to the song?",
                 "left": "1 = Not at all",
                 "right": "9 = Very strongly",
                 "varname": "chills"
@@ -205,79 +231,76 @@ with ExperimentController(**ec_args) as ec:
         ]
 
         responses = {}
-
+        
         for q in questions:
-            # Clear screen and display question
-            ec.screen_text(q["prompt"], pos=[0, 0.3], color='w')
-            
-            # Define circle positions - centered horizontally
+            # Adjusted positions for 2560x1440 screen, better alignment and fitting
+            # Use normalized units: x in [-1,1], y in [-1,1]
+            # Display the question prompt at the center of the screen
+            ec.screen_text(q["prompt"], pos=[0.5, 0], units='norm', color='w')
+
+            # Define positions for left/right labels and circles
+            left_label_x = 0.35
+            right_label_x = 1.2
+            circles_y = -0.3
+            number_y = -0.25  # number above the circle
+
+            # Place "left" and "right" labels just outside the first and last circle
+            ec.screen_text(q["left"], pos=[left_label_x, -0.5], units='norm', color='w')
+            ec.screen_text(q["right"], pos=[right_label_x, -0.5], units='norm', color='w')
+
+            # Place 9 small circles evenly between left_label_x and right_label_x
             n_circles = 9
-            circle_width = 1.6  # total width for all circles
-            circle_spacing = circle_width / (n_circles - 1)
-            start_x = -circle_width / 2
-            circles_y = -0.25
-            numbers_y = -0.15
-            
-            # Position labels closer to first and last circles
-            label_offset = 0.15
-            left_label_x = start_x - label_offset
-            right_label_x = start_x + circle_width + label_offset
-            
-            ec.screen_text(q["left"], pos=[left_label_x, circles_y], color='w')
-            ec.screen_text(q["right"], pos=[right_label_x, circles_y], color='w')
-            
-            # Create and draw circles with numbers
+            print((right_label_x - left_label_x))
+            circle_spacing=0.1 #circle_spacing = (right_label_x - left_label_x) / (n_circles - 1)
+            circle_radius = (0.02, 0.03)  # smaller circle for better appearance
+            number_circle_factor=.3
+
             init_circles = []
             for i in range(n_circles):
-                x_pos = start_x + i * circle_spacing
+                x_pos = left_label_x + i * circle_spacing
+                x_pos_text=0 + i*circle_spacing
+                x_pos_circle=0 + i * circle_spacing
                 init_circles.append(
-                    Circle(ec, radius=(0.02, 0.03), pos=(x_pos, circles_y), units='norm',
-                           fill_color=None, line_color='white', line_width=5)
+                    Circle(ec, radius=circle_radius, pos=(number_circle_factor+((-.7 + (i*circle_spacing))), circles_y), units='norm',
+                           fill_color=None, line_color='white', line_width=3)
                 )
-                ec.screen_text(str(i + 1), pos=[x_pos, numbers_y], units='norm', color='w')
-            
+                # Draw number above the circle, centered
+                ec.screen_text(str(i + 1), pos=[number_circle_factor+(.09+i*circle_spacing), number_y], units='norm', color='w')
             for c in init_circles:
                 c.draw()
             ec.flip()
-            
-            # Wait for user response
             click, ind = ec.wait_for_click_on(init_circles, max_wait=np.inf)
-            
-            # Show feedback with highlighted selection
+
+            # Show feedback: highlight the selected circle
             after_circles = []
             for i in range(n_circles):
-                x_pos = start_x + i * circle_spacing
+                x_pos = left_label_x + i * circle_spacing
                 if i == ind:
                     after_circles.append(
-                        Circle(ec, radius=(0.02, 0.03), pos=(x_pos, circles_y), units='norm',
-                               fill_color='white', line_color='white', line_width=5)
+                        Circle(ec, radius=circle_radius, pos=(number_circle_factor+((-.7 + (i*circle_spacing))), circles_y), units='norm',
+                               fill_color='white', line_color='white', line_width=3)
                     )
                 else:
                     after_circles.append(
-                        Circle(ec, radius=(0.02, 0.03), pos=(x_pos, circles_y), units='norm',
-                               fill_color=None, line_color='white', line_width=5)
+                        Circle(ec, radius=circle_radius, pos=(number_circle_factor+((-.7 + (i*circle_spacing))), circles_y), units='norm',
+                               fill_color=None, line_color='white', line_width=3)
                     )
-                ec.screen_text(str(i + 1), pos=[x_pos, numbers_y], units='norm', color='w')
-            
+                ec.screen_text(str(i + 1), pos=[number_circle_factor+(.09+i*circle_spacing), number_y], units='norm', color='w')
             for c in after_circles:
                 c.draw()
             ec.flip()
-            ec.wait_secs(1)  # Show selection for 1 second
+            
             responses[q["varname"]] = ind + 1  # 1-based
-        # Save data
-        # Save trial_num, trial_id, and all responses
-        trial_data = {
-            "trial_num": ei,
-            "trial_id": trial_id,
-            "song_file": stim_df.iloc[ei]['Song_File'],
-            "duration": trial_dur
-        }
-        trial_data.update(responses)
-        ec.write_data_line("Trial data", trial_data)
+           
+        # save data
+        ec.write_data_line("responses", responses)
+        
         ec.trial_ok()
+        ec.stop()
         # Update progress bar
         pb.update_bar((ei + 1) / n_epoch_total * 100)
         pb.draw()
+        ec.wait_secs(0.5)
     # End exp
     ec.screen_prompt('ya did it!')
 True
