@@ -45,14 +45,14 @@ conda activate music_preproc
 python code/stimulus_presentation/music_batch_preproc.py --input_dir music_stim/original --output_dir music_stim/preprocesed --no_trim
 ```
 ## Experiment Procedure
-### 5-Minute Click Trains: [`/click_stim`](https://github.com/sasnl/music_preference/tree/main/click_stim)
-### Latin Square Randomized Song Presentation
+### 1. 5-Minute Click Trains: [`/click_stim`](https://github.com/sasnl/music_preference/tree/main/click_stim)
+### 2. Latin Square Randomized Song Presentation
 - code to generate randomized song order: `/code/stimulus_presentation/generate_music_orders.py`. Generated order file: `/code/stimulus_presentation/music_presentation_orders.csv`
 - Participants will passively listening to the songs, while EEG recording with both ABR+Cortical system
 - EEG recording at 10k Hz / 25k Hz
 - Stimlus presentation at 48k Hz
 run the script on stimlus computer: [`/code/stimulus_presentation/music_preference_presentation.py`](https://github.com/sasnl/music_preference/blob/main/code/stimulus_presentation/music_preference_presentation.py)
-### Behavioral Questions After Each Song
+### 3. Behavioral Questions After Each Song
 - in stimlus presentation script, questions pop up when a song ends
 #### Preference for the Song
  How much did you like or enjoy the song overall?
@@ -85,8 +85,14 @@ run the script on stimlus computer: [`/code/stimulus_presentation/music_preferen
  ## Continuous Music ABR Analysis
  - Derive ANM regressor: ``
  - Derive music ABR using **deconvolution** as in [Shan et al. (2024)](https://www.nature.com/articles/s41598-023-50438-0)
+
+ ## Music Cortical TRF analysis
  - Derive music TRF using ANM regressor as in Shan et al. (2024)
+
+ ## Music ISC analysis
  - Derive ISC among participants for each song
+
+ ## Correlate behavioral respinses
  - Extract behavioral question responses and make heatmap for each song
  - correlate neuro metrics with behavioral responses
 
