@@ -21,21 +21,21 @@
 
 ### [Musicianship Questionnair](https://github.com/sasnl/music_preference/blob/main/MusicianshipQuestionnaire.md)
 
-### Selection of Favorite Songs
-**[Song list](https://docs.google.com/spreadsheets/d/1YDDWKmQ6O3HpwoQeA3kcLaOXuhWvbGlxDFgny0Mv1zk/edit?gid=0#gid=0)**
+### Selection of [Favorite Songs](https://docs.google.com/spreadsheets/d/1YDDWKmQ6O3HpwoQeA3kcLaOXuhWvbGlxDFgny0Mv1zk/edit?gid=0#gid=0)
 
-- total length of music = 68:02
+total length of music = 68:02
 
 ### Music Stimuli Preprocessing
-- Pipeline
-    - mp3-2-wav -->
-    stereo-2-mono -->
-    low-passEnveDiv(flatten) --> rms0.01(normalize) 
-    --> Resample-48kHz
-- [`music_batch_preproc.py`](https://github.com/sasnl/music_preference/blob/main/code/stimulus_presentation/music_batch_preproc.py)
+- **Music Stimuli Preprocessing Pipeline:**
+  1. **Convert MP3 to WAV**
+  2. **Convert Stereo to Mono**
+  3. **Apply Low-Pass Envelope Division (Flatten)**
+  4. **Normalize RMS (window size: 0.01)**
+  5. **Resample to 48 kHz**
+- **Script**: [`/code/stimulus_presentation/music_batch_preproc.py`](https://github.com/sasnl/music_preference/blob/main/code/stimulus_presentation/music_batch_preproc.py)
 
 **To run the script**
-1. install environment according to `env.yml`
+1. install environment according to `/code/stimulus_presentation/env.yml`
 ```
 conda env create -f env.yml
 conda activate music_preproc
@@ -47,11 +47,11 @@ python code/stimulus_presentation/music_batch_preproc.py --input_dir music_stim/
 ## Experiment Procedure
 ### 5-Minute Click Trains: [`/click_stim`](https://github.com/sasnl/music_preference/tree/main/click_stim)
 ### Latin Square Randomized Song Presentation
-- code to generate randomized song order: `generate_music_orders.py`. Generated order file: `music_presentation_orders.csv`
+- code to generate randomized song order: `/code/stimulus_presentation/generate_music_orders.py`. Generated order file: `/code/stimulus_presentation/music_presentation_orders.csv`
 - Participants will passively listening to the songs, while EEG recording with both ABR+Cortical system
 - EEG recording at 10k Hz / 25k Hz
 - Stimlus presentation at 48k Hz
-run the script on stimlus computer: [`music_preference_presentation.py`](https://github.com/sasnl/music_preference/blob/main/code/stimulus_presentation/music_preference_presentation.py)
+run the script on stimlus computer: [`/code/stimulus_presentation/music_preference_presentation.py`](https://github.com/sasnl/music_preference/blob/main/code/stimulus_presentation/music_preference_presentation.py)
 ### Behavioral Questions After Each Song
 - in stimlus presentation script, questions pop up when a song ends
 #### Preference for the Song
