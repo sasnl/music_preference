@@ -7,7 +7,7 @@ This script presents music stimuli to participants and collects behavioral respo
 It uses the randomized music order from CSV file and presents questions after each song.
 Improved with background audio preloading and loading screens to eliminate UI freezing.
 
-@author: Tong, Ariya
+@author: Tong, Ariya, Dawlat
 """
 
 # %%

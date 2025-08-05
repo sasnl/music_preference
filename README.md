@@ -63,3 +63,18 @@ run the script on stimlus computer: [`music_preference_presentation.py`](https:/
 #### Musical Chills
  To what extent did you feel chills, goosebumps, or a strong emotional reaction while listening to the song?
  (1 = Not at all, 9 = Very strongly)
+
+ # Analysis
+ ## Click ABR analysis
+ - Cross-correlation
+ - ``
+ ## Continous music ABR analysis
+ - Derive ANM regressor: ``
+ - Derive music ABR using **deconvolution** as in Shan et al. (2024)
+ - Derive music TRF using ANM regressor as in Shan et al. (2024)
+ - Derive ISC among participants for each song
+ - Extract behavioral question responses and make heatmap for each song
+ - correlate neuro metrics with behavioral responses
+
+
+

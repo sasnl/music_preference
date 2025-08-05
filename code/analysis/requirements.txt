@@ -1,0 +1,8 @@
+numpy>=1.21.0
+scipy>=1.7.0
+matplotlib>=3.5.0
+mne>=1.0.0
+expyfun>=0.8.0
+h5py>=3.7.0
+pathlib
+typing-extensions 
