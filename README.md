@@ -19,7 +19,7 @@
 
 ## Participants Onboarding
 
-### [Musicianship Questionnair]()
+### [Musicianship Questionnair](https://github.com/sasnl/music_preference/blob/main/MusicianshipQuestionnaire.md)
 
 ### Selection of Favorite Songs
 **[Song list](https://docs.google.com/spreadsheets/d/1YDDWKmQ6O3HpwoQeA3kcLaOXuhWvbGlxDFgny0Mv1zk/edit?gid=0#gid=0)**
@@ -81,6 +81,7 @@ run the script on stimlus computer: [`music_preference_presentation.py`](https:/
  - **Input**: BrainVision (.vhdr) files with ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
  - **Output**: ABR response arrays, time lags, HDF5 files, plots, and summary statistics
  - **Documentation**: See [`code/analysis/derive_click_ABR/README_ABR.md`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/README_ABR.md) for detailed usage
+
  ## Continuous Music ABR Analysis
  - Derive ANM regressor: ``
  - Derive music ABR using **deconvolution** as in Shan et al. (2024)
