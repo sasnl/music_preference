@@ -1,29 +1,32 @@
 # Music Preference Study
 
 ## Table of Contents
-- [Participants onboarding](#participants-onboarding)
+- [Participants Onboarding](#participants-onboarding)
   - [Musicianship Questionnaire](#musicianship-questionnaire)
-  - [Everyone choose 3 of their favorite songs](#everyone-choose-3-of-their-favorite-songs)
-  - [Music stimuli preprocessing](#music-stimuli-preprocessing)
-- [Experiment procedure](#experiment-procedure)
-  - [5-min click trains](#5-min-click-trains)
-  - [Latin randomized chosen songs](#latin-randomized-chosen-songs)
-  - [Behavioral questions following each song](#behavioral-questions-following-each-song)
+  - [Selection of Favorite Songs](#selection-of-favorite-songs)
+  - [Music Stimuli Preprocessing](#music-stimuli-preprocessing)
+- [Experiment Procedure](#experiment-procedure)
+  - [5-Minute Click Trains](#5-minute-click-trains)
+  - [Latin Square Randomized Song Presentation](#latin-square-randomized-song-presentation)
+  - [Behavioral Questions After Each Song](#behavioral-questions-after-each-song)
+    - [Preference for the Song](#preference-for-the-song)
     - [Pleasantness](#pleasantness)
     - [Valence/Arousal](#valencearousal)
     - [Musical Chills](#musical-chills)
-    - [Preference for the Song](#preference-for-the-song)
+- [Analysis](#analysis)
+  - [Click ABR Analysis](#click-abr-analysis)
+  - [Continuous Music ABR Analysis](#continuous-music-abr-analysis)
 
-## Participants onboarding
+## Participants Onboarding
 
 ### [Musicianship Questionnair]()
 
-### Everyone choose 3 of their favorite songs
+### Selection of Favorite Songs
 **[Song list](https://docs.google.com/spreadsheets/d/1YDDWKmQ6O3HpwoQeA3kcLaOXuhWvbGlxDFgny0Mv1zk/edit?gid=0#gid=0)**
 
 - total length of music = 68:02
 
-### Music stimli preprocessing
+### Music Stimuli Preprocessing
 - Pipeline
     - mp3-2-wav -->
     stereo-2-mono -->
@@ -41,15 +44,15 @@ conda activate music_preproc
 ```python
 python code/stimulus_presentation/music_batch_preproc.py --input_dir music_stim/original --output_dir music_stim/preprocesed --no_trim
 ```
-## Experiment procedure
-### 5-min click trains: [`/click_stim`](https://github.com/sasnl/music_preference/tree/main/click_stim)
-### Latin square randomized chosen songs
+## Experiment Procedure
+### 5-Minute Click Trains: [`/click_stim`](https://github.com/sasnl/music_preference/tree/main/click_stim)
+### Latin Square Randomized Song Presentation
 - code to generate randomized song order: `generate_music_orders.py`. Generated order file: `music_presentation_orders.csv`
 - Participants will passively listening to the songs, while EEG recording with both ABR+Cortical system
 - EEG recording at 10k Hz / 25k Hz
 - Stimlus presentation at 48k Hz
 run the script on stimlus computer: [`music_preference_presentation.py`](https://github.com/sasnl/music_preference/blob/main/code/stimulus_presentation/music_preference_presentation.py)
-### Behavioral questions following each song
+### Behavioral Questions After Each Song
 - in stimlus presentation script, questions pop up when a song ends
 #### Preference for the Song
  How much did you like or enjoy the song overall?
@@ -64,8 +67,8 @@ run the script on stimlus computer: [`music_preference_presentation.py`](https:/
  To what extent did you feel chills, goosebumps, or a strong emotional reaction while listening to the song?
  (1 = Not at all, 9 = Very strongly)
 
- # Analysis
- ## Click ABR analysis
+# Analysis
+ ## Click ABR Analysis
  - **Cross-correlation analysis** for ABR derivation from click stimuli
  - **Modular Python implementation**: `code/analysis/derive_click_ABR/derive_click_ABR.py`
  - **Key Features**:
@@ -78,7 +81,7 @@ run the script on stimlus computer: [`music_preference_presentation.py`](https:/
  - **Input**: BrainVision (.vhdr) files with ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
  - **Output**: ABR response arrays, time lags, HDF5 files, plots, and summary statistics
  - **Documentation**: See `code/analysis/derive_click_ABR/README_ABR.md` for detailed usage
- ## Continous music ABR analysis
+ ## Continuous Music ABR Analysis
  - Derive ANM regressor: ``
  - Derive music ABR using **deconvolution** as in Shan et al. (2024)
  - Derive music TRF using ANM regressor as in Shan et al. (2024)
