@@ -84,7 +84,7 @@ run the script on stimlus computer: [`/code/stimulus_presentation/music_preferen
 
  ## Continuous Music ABR Analysis
  - Derive ANM regressor: ``
- - Derive music ABR using **deconvolution** as in Shan et al. (2024)
+ - Derive music ABR using **deconvolution** as in [Shan et al. (2024)](https://www.nature.com/articles/s41598-023-50438-0)
  - Derive music TRF using ANM regressor as in Shan et al. (2024)
  - Derive ISC among participants for each song
  - Extract behavioral question responses and make heatmap for each song
