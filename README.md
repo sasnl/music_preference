@@ -66,8 +66,18 @@ run the script on stimlus computer: [`music_preference_presentation.py`](https:/
 
  # Analysis
  ## Click ABR analysis
- - Cross-correlation
- - ``
+ - **Cross-correlation analysis** for ABR derivation from click stimuli
+ - **Modular Python implementation**: `code/analysis/derive_click_ABR/derive_click_ABR.py`
+ - **Key Features**:
+   - Configurable parameters (EEG sampling frequency, filtering, time ranges)
+   - Command-line interface and Python module usage
+   - HDF5 data storage with rich metadata
+   - Optional plot generation
+   - Batch processing support
+   - Comprehensive error handling and logging
+ - **Input**: BrainVision (.vhdr) files with ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
+ - **Output**: ABR response arrays, time lags, HDF5 files, plots, and summary statistics
+ - **Documentation**: See `code/analysis/derive_click_ABR/README_ABR.md` for detailed usage
  ## Continous music ABR analysis
  - Derive ANM regressor: ``
  - Derive music ABR using **deconvolution** as in Shan et al. (2024)

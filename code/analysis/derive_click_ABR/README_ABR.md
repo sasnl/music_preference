@@ -11,6 +11,8 @@ This module provides functionality to derive ABR responses from click stimuli us
 - **Logging**: Detailed progress tracking
 - **Optional Plotting**: Generate ABR response plots
 - **Batch Processing**: Support for processing multiple subjects
+- **HDF5 Data Storage**: Efficient storage with rich metadata
+- **Enhanced Plot Saving**: Improved plot generation and logging
 
 ## Requirements
 
@@ -22,6 +24,8 @@ matplotlib>=3.5.0
 mne>=1.0.0
 expyfun>=0.8.0
 h5py>=3.7.0
+pyglet<1.6
+PyOpenGL
 ```
 
 ### Environment Management
@@ -67,10 +71,15 @@ pip install -r requirements.txt
 
 1. Ensure all required Python packages are installed:
 ```bash
-pip install numpy scipy matplotlib mne expyfun h5py
+pip install numpy scipy matplotlib mne expyfun h5py pyglet PyOpenGL
 ```
 
-2. Place your EEG data and click stimuli in the appropriate directories.
+2. For expyfun installation (if not available via pip):
+```bash
+pip install git+https://github.com/labsn/expyfun
+```
+
+3. Place your EEG data and click stimuli in the appropriate directories.
 
 ## Usage
 
@@ -157,10 +166,24 @@ The module generates the following output files in the specified output director
 ### Data Files
 - `{subject_id}_abr_response.npy`: ABR response array
 - `{subject_id}_lags.npy`: Time lags array
+- `{subject_id}_abr_results.h5`: **HDF5 file with data and metadata**
 - `{subject_id}_abr_results.txt`: Summary statistics
 
 ### Plot Files (if `plot_results=True`)
 - `{subject_id}_abr_plot.png`: ABR response plot
+
+### HDF5 File Structure
+The HDF5 file contains:
+- **Datasets**:
+  - `abr_response`: ABR response array
+  - `lags`: Time lags array
+- **Attributes**:
+  - `subject_id`: Subject identifier
+  - `response_length`: Number of samples
+  - `time_range_ms`: Time range in milliseconds
+  - `peak_amplitude_uv`: Peak amplitude in microvolts
+  - `rms_amplitude_uv`: RMS amplitude in microvolts
+  - `sampling_frequency_hz`: Sampling frequency
 
 ## Processing Pipeline
 
@@ -171,6 +194,8 @@ The module generates the following output files in the specified output director
 5. **Stimulus Processing**: Load click WAV files and convert to pulse trains
 6. **Cross-correlation**: Use FFT-based cross-correlation to derive ABR response
 7. **Response Concatenation**: Create the final ABR response with proper time alignment
+8. **Data Storage**: Save results in multiple formats (numpy arrays, HDF5, text summary)
+9. **Plot Generation**: Generate and save ABR response plots (optional)
 
 ## File Structure
 
@@ -215,6 +240,23 @@ See `example_abr_usage.py` for comprehensive usage examples including:
 - Batch processing
 - Command-line interface examples
 
+### HDF5 Data Access Example
+```python
+import h5py
+
+# Load ABR results from HDF5 file
+with h5py.File('subject001_abr_results.h5', 'r') as f:
+    abr_response = f['abr_response'][:]
+    lags = f['lags'][:]
+    subject_id = f.attrs['subject_id']
+    peak_amplitude = f.attrs['peak_amplitude_uv']
+    rms_amplitude = f.attrs['rms_amplitude_uv']
+    
+print(f"Subject: {subject_id}")
+print(f"Peak amplitude: {peak_amplitude:.3f} μV")
+print(f"RMS amplitude: {rms_amplitude:.3f} μV")
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -234,12 +276,24 @@ See `example_abr_usage.py` for comprehensive usage examples including:
    - Use shorter `t_click` values
    - Process data in smaller batches
 
+4. **Dependency Issues**
+   - Install expyfun from GitHub: `pip install git+https://github.com/labsn/expyfun`
+   - Install pyglet with version constraint: `pip install "pyglet<1.6"`
+   - Install PyOpenGL: `pip install PyOpenGL`
+
+5. **HDF5 File Access**
+   - Ensure h5py is installed: `pip install h5py`
+   - Use appropriate file permissions for HDF5 files
+   - Check HDF5 file integrity with h5py validation tools
+
 ### Performance Tips
 
 - Use higher `eeg_fs` for better temporal resolution
 - Increase `n_epoch_click` for better signal-to-noise ratio
 - Adjust `eeg_f_hp` based on your specific requirements
 - Use `plot_results=True` for visual verification
+- HDF5 files provide efficient storage for large datasets
+- Use HDF5 format for batch processing and data sharing
 
 ## Citation
 

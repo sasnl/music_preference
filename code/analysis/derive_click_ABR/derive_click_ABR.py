@@ -21,6 +21,7 @@ from numpy.fft import fft, ifft
 import matplotlib.pyplot as plt
 from expyfun.io import read_wav
 import mne
+import h5py
 
 
 def butter_highpass(cutoff: float, fs: float, order: int = 1) -> Tuple[np.ndarray, np.ndarray]:
@@ -392,6 +393,18 @@ def save_results(abr_response: np.ndarray, lags: np.ndarray, output_dir: str,
     np.save(os.path.join(output_dir, f"{subject_id}_abr_response.npy"), abr_response)
     np.save(os.path.join(output_dir, f"{subject_id}_lags.npy"), lags)
     
+    # Save as HDF5 file
+    hdf5_file = os.path.join(output_dir, f"{subject_id}_abr_results.h5")
+    with h5py.File(hdf5_file, 'w') as f:
+        f.create_dataset('abr_response', data=abr_response)
+        f.create_dataset('lags', data=lags)
+        f.attrs['subject_id'] = subject_id
+        f.attrs['response_length'] = len(abr_response)
+        f.attrs['time_range_ms'] = [lags[0], lags[-1]]
+        f.attrs['peak_amplitude_uv'] = np.max(np.abs(abr_response))
+        f.attrs['rms_amplitude_uv'] = np.sqrt(np.mean(abr_response**2))
+        f.attrs['sampling_frequency_hz'] = 1000.0 / (lags[1] - lags[0])  # Calculate from time step
+    
     # Save as text file for easy viewing
     results_file = os.path.join(output_dir, f"{subject_id}_abr_results.txt")
     with open(results_file, 'w') as f:
@@ -401,8 +414,10 @@ def save_results(abr_response: np.ndarray, lags: np.ndarray, output_dir: str,
         f.write(f"Time range: {lags[0]:.1f} to {lags[-1]:.1f} ms\n")
         f.write(f"Peak amplitude: {np.max(np.abs(abr_response)):.3f} μV\n")
         f.write(f"RMS amplitude: {np.sqrt(np.mean(abr_response**2)):.3f} μV\n")
+        f.write(f"HDF5 file: {hdf5_file}\n")
     
     logging.info(f"ABR results saved to {output_dir}")
+    logging.info(f"HDF5 file created: {hdf5_file}")
 
 
 def derive_abr(eeg_file: str, output_dir: str, click_dir: str = None,
@@ -480,6 +495,7 @@ def derive_abr(eeg_file: str, output_dir: str, click_dir: str = None,
         if plot_results:
             plot_file = os.path.join(output_dir, f"{subject_id}_abr_plot.png")
             plot_abr_response(abr_response, lags, plot_file)
+            logging.info(f"ABR plot generated and saved to {plot_file}")
         
         logging.info(f"ABR derivation completed successfully for {subject_id}")
         return abr_response, lags
