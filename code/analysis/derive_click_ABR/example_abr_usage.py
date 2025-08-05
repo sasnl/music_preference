@@ -14,7 +14,7 @@ from pathlib import Path
 # Add the current directory to the path so we can import the module
 sys.path.append(os.path.dirname(__file__))
 
-from derive_click_abr import derive_abr
+from derive_click_ABR import derive_abr
 
 
 def example_basic_usage():
@@ -124,18 +124,18 @@ def example_command_line_usage():
     print("You can also use the module from the command line:")
     print()
     print("Basic usage:")
-    print("python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir")
+    print("python derive_click_ABR.py /path/to/eeg_file.vhdr ./output_dir")
     print()
     print("With custom parameters:")
-    print("python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir \\")
+    print("python derive_click_ABR.py /path/to/eeg_file.vhdr ./output_dir \\")
     print("    --eeg_fs 25000 --eeg_f_hp 2.0 --t_click 30 --plot")
     print()
     print("With custom response time range:")
-    print("python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir \\")
+    print("python derive_click_ABR.py /path/to/eeg_file.vhdr ./output_dir \\")
     print("    --t_start -0.1 --t_stop 0.5 --plot")
     print()
     print("With custom click directory:")
-    print("python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir \\")
+    print("python derive_click_ABR.py /path/to/eeg_file.vhdr ./output_dir \\")
     print("    --click_dir /path/to/click_stim --subject_id my_subject")
 
 

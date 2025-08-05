@@ -78,24 +78,24 @@ pip install numpy scipy matplotlib mne expyfun h5py
 
 #### Basic Usage
 ```bash
-python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir
+python derive_click_ABR.py /path/to/eeg_file.vhdr ./output_dir
 ```
 
 #### With Custom Parameters
 ```bash
-python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir \
+python derive_click_ABR.py /path/to/eeg_file.vhdr ./output_dir \
     --eeg_fs 25000 --eeg_f_hp 2.0 --t_click 30 --plot
 ```
 
 #### With Custom Response Time Range
 ```bash
-python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir \
+python derive_click_ABR.py /path/to/eeg_file.vhdr ./output_dir \
     --t_start -0.1 --t_stop 0.5 --plot
 ```
 
 #### With Custom Click Directory
 ```bash
-python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir \
+python derive_click_ABR.py /path/to/eeg_file.vhdr ./output_dir \
     --click_dir /path/to/click_stim --subject_id my_subject
 ```
 
@@ -103,7 +103,7 @@ python derive_click_abr.py /path/to/eeg_file.vhdr ./output_dir \
 
 #### Basic Example
 ```python
-from derive_click_abr import derive_abr
+from derive_click_ABR import derive_abr
 
 abr_response, lags = derive_abr(
     eeg_file="/path/to/eeg_file.vhdr",
@@ -178,12 +178,12 @@ The module generates the following output files in the specified output director
 music_preference/
 ├── code/
 │   └── analysis/
-│       ├── derive_click_abr.py        # Main ABR derivation module
-│       ├── example_abr_usage.py       # Usage examples
-│       ├── README_ABR.md              # This documentation
-│       ├── environment.yml             # Conda environment setup
-│       ├── requirements.txt            # pip requirements
-│       └── derive_click_abr_pilot.ipynb  # Original notebook
+│       └── derive_click_ABR/          # ABR derivation module
+│           ├── derive_click_ABR.py    # Main ABR derivation module
+│           ├── example_abr_usage.py   # Usage examples
+│           ├── README_ABR.md          # This documentation
+│           ├── environment.yml         # Conda environment setup
+│           └── requirements.txt        # pip requirements
 ├── click_stim/                        # Click stimulus files
 │   ├── click000.wav
 │   ├── click001.wav
