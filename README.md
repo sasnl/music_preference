@@ -68,9 +68,9 @@ run the script on stimlus computer: [`music_preference_presentation.py`](https:/
  (1 = Not at all, 9 = Very strongly)
 
 # Analysis
- ## Click ABR Analysis
+ ## [Click ABR Analysis](https://github.com/sasnl/music_preference/tree/main/code/analysis/derive_click_ABR)
  - **Cross-correlation analysis** for ABR derivation from click stimuli
- - **Modular Python implementation**: `code/analysis/derive_click_ABR/derive_click_ABR.py`
+ - **Modular Python implementation**: [`code/analysis/derive_click_ABR/derive_click_ABR.py`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/derive_click_ABR.py)
  - **Key Features**:
    - Configurable parameters (EEG sampling frequency, filtering, time ranges)
    - Command-line interface and Python module usage
@@ -80,7 +80,7 @@ run the script on stimlus computer: [`music_preference_presentation.py`](https:/
    - Comprehensive error handling and logging
  - **Input**: BrainVision (.vhdr) files with ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
  - **Output**: ABR response arrays, time lags, HDF5 files, plots, and summary statistics
- - **Documentation**: See `code/analysis/derive_click_ABR/README_ABR.md` for detailed usage
+ - **Documentation**: See [`code/analysis/derive_click_ABR/README_ABR.md`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/README_ABR.md) for detailed usage
  ## Continuous Music ABR Analysis
  - Derive ANM regressor: ``
  - Derive music ABR using **deconvolution** as in Shan et al. (2024)
