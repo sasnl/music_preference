@@ -84,17 +84,43 @@ run the script on stimlus computer: [`/code/stimulus_presentation/music_preferen
 
  ## Continuous Music ABR Analysis
  - Derive ANM regressor: ``
+ - Use a 0–600 ms window to capture early responses.
  - Derive music ABR using **deconvolution** as in [Shan et al. (2024)](https://www.nature.com/articles/s41598-023-50438-0)
+ - Future analyses can explore acoustic feature differences across stimuli.
+
 
  ## Music Cortical TRF analysis
  - Derive music TRF using ANM regressor as in Shan et al. (2024)
+ - Use conventional TRF methods to model the neural response:
+  - Train/test split: 80% training, 20% testing.
+  - Perform cross-validation.
+  - Outcome: Average R² across subjects and models.
+- Preprocessing and setup:
+  - Normalize data.
+  - Determine stimulus position.
+  - Extract TRF weights and P2 component.
+- Link neural data with behavioral responses.
+  - Compile and align TRF results with survey/questionnaire data.
+- Analyze topography to visualize spatial differences in TRF components (e.g., P2 differences across preference).
 
  ## Music ISC analysis
- - Derive ISC among participants for each song
+ - Step 1: Perform RCA (Reliable Components Analysis) to obtain spatial filters.
+  - Identify the most reliable component (typically RC1) across all music conditions.
+  - Check for differences in RCA components between preferred and non-preferred songs.
+- Step 2: Apply the RCA weights to the EEG data to get spatially filtered signals.
+- Step 3: Compute Inter-Subject Correlation (ISC) using the filtered signals.
+  - Run ISC on the RCA-derived component (e.g., RC1) to measure shared neural responses across participants.
+- Generate final ISC results as a matrix heat map for visualization.
+- Additional Notes:
+  - Perform ISC for each song individually.
+  - Optionally, concatenate multiple songs (e.g., Songs 1, 2, and 3) per person to increase data length.
+  - Concatenation can be done for short excerpts or full-length tracks—segment length is flexible.
 
  ## Correlate behavioral respinses
- - Extract behavioral question responses and make heatmap for each song
- - correlate neuro metrics with behavioral responses
-
+- Compare ISC EEG amplitude to participants’ preference ratings:
+- hypothesis: Higher P2 amplitude for more preferred songs; P1 is expected to remain similar.
+- Instead of waveform amplitude correlations, use TRF model prediction accuracy:
+  - Train on 8 minutes, test on 2 minutes.
+  - Use R² value as the prediction accuracy metric (R will be higher, but R² is more informative).
 
 

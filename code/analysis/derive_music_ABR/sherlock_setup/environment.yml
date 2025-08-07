@@ -1,0 +1,17 @@
+name: music_anm_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy<2.0
+  - scipy
+  - mne
+  - joblib
+  - psutil
+  - h5py
+  - pip
+  - pip:
+    - "Cython<3.0"
+    - git+https://github.com/mrkrd/cochlea.git
+    - expyfun

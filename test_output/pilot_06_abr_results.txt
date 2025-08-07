@@ -1,0 +1,6 @@
+ABR Results for pilot_06
+==================================================
+Response length: 8000 samples
+Time range: -200.0 to 599.9 ms
+Peak amplitude: 0.000 μV
+RMS amplitude: 0.000 μV
