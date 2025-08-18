@@ -1,18 +1,24 @@
 # ABR (Auditory Brainstem Response) Derivation Module
 
-This module provides functionality to derive ABR responses from click stimuli using cross-correlation analysis in the frequency domain. It converts the original Jupyter notebook into a modular Python script with configurable parameters and command-line interface.
+This module provides functionality to derive ABR responses from click stimuli using cross-correlation analysis in the frequency domain. It includes both the original modular script for BrainVision files and a new single-subject script optimized for the music preference project with .fif files.
 
 ## Features
 
+### Original Script (`derive_click_ABR.py`)
 - **Modular Design**: Separate functions for each processing step
+- **BrainVision Support**: Works with .vhdr files
 - **Configurable Parameters**: Flexible EEG and stimulus parameters
 - **Command-line Interface**: Easy to use with different datasets
 - **Error Handling**: Robust validation and error reporting
 - **Logging**: Detailed progress tracking
-- **Optional Plotting**: Generate ABR response plots
-- **Batch Processing**: Support for processing multiple subjects
-- **HDF5 Data Storage**: Efficient storage with rich metadata
-- **Enhanced Plot Saving**: Improved plot generation and logging
+
+### Single Subject Script (`derive_click_ABR_single_subject.py`)
+- **Music Preference Project Optimized**: Designed for pilot study structure
+- **FIF File Support**: Direct processing of .fif files (no .vhdr needed)
+- **Trial-to-Stimulus Mapping**: Automatic mapping of trials to click stimuli
+- **Enhanced Visualization**: Comprehensive plots including individual trials
+- **ExpyFun Integration**: Consistent with music preference analysis pipeline
+- **25kHz Sampling**: Optimized for high-resolution EEG data
 
 ## Requirements
 
@@ -21,9 +27,11 @@ This module provides functionality to derive ABR responses from click stimuli us
 numpy>=1.21.0
 scipy>=1.7.0
 matplotlib>=3.5.0
-mne>=1.0.0
+pandas>=1.3.0
+mne>=1.5.0
 expyfun>=0.8.0
 h5py>=3.7.0
+glob2
 pyglet<1.6
 PyOpenGL
 ```
@@ -41,8 +49,16 @@ Choose the installation method that best fits your workflow:
 - **Manual**: Install packages individually as needed
 
 ### Data Requirements
+
+#### Original Script
 - **EEG Data**: BrainVision (.vhdr) files with ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
 - **Click Stimuli**: WAV files named `click000.wav`, `click001.wav`, etc.
+
+#### Single Subject Script (Music Preference Project)
+- **EEG Data**: .fif files named `{subject}_click_trial1.fif` through `{subject}_click_trial5.fif`
+- **ABR Channels**: Plus_R, Minus_R, Plus_L, Minus_L (automatically referenced)
+- **Click Stimuli**: WAV files `click000.wav` through `click004.wav` in `./click_stim/` directory
+- **Trial-Stimulus Mapping**: trial1→click000.wav, trial2→click001.wav, ..., trial5→click004.wav
 
 ## Installation
 
@@ -83,7 +99,21 @@ pip install git+https://github.com/labsn/expyfun
 
 ## Usage
 
-### Command Line Interface
+### Single Subject Script (Music Preference Project)
+
+#### Basic Usage
+```bash
+python derive_click_ABR_single_subject.py pilot_2
+```
+
+#### For All Subjects
+```bash
+for subject in pilot_1 pilot_2 pilot_3 pilot_4 pilot_5; do
+    python derive_click_ABR_single_subject.py $subject
+done
+```
+
+### Original Script Command Line Interface
 
 #### Basic Usage
 ```bash
@@ -146,7 +176,16 @@ abr_response, lags = derive_abr(
 - `eeg_file`: Path to EEG .vhdr file
 - `output_dir`: Output directory for results
 
-### Optional Parameters
+### Single Subject Script Parameters
+- `subject_id`: Subject identifier (e.g., pilot_2)
+- Fixed parameters optimized for music preference project:
+  - `eeg_fs`: 25000 Hz
+  - `eeg_f_hp`: 1.0 Hz
+  - `t_click`: 60 seconds
+  - `click_rate`: 40 Hz
+  - `t_start`: -200ms, `t_stop`: +600ms
+
+### Original Script Optional Parameters
 - `click_dir`: Directory containing click WAV files (defaults to `click_stim/`)
 - `eeg_fs`: EEG sampling frequency (default: 10000 Hz)
 - `eeg_f_hp`: High-pass cutoff frequency (default: 1.0 Hz)
@@ -161,19 +200,29 @@ abr_response, lags = derive_abr(
 
 ## Output Files
 
-The module generates the following output files in the specified output directory:
+### Single Subject Script Output
+- `{subject_id}_click_ABR.hdf5`: HDF5 file with ABR results (ExpyFun format)
+- `{subject_id}_click_ABR.png`: Comprehensive plots (6-panel figure)
 
-### Data Files
+### Original Script Output
 - `{subject_id}_abr_response.npy`: ABR response array
 - `{subject_id}_lags.npy`: Time lags array
-- `{subject_id}_abr_results.h5`: **HDF5 file with data and metadata**
+- `{subject_id}_abr_results.h5`: HDF5 file with data and metadata
 - `{subject_id}_abr_results.txt`: Summary statistics
-
-### Plot Files (if `plot_results=True`)
-- `{subject_id}_abr_plot.png`: ABR response plot
+- `{subject_id}_abr_plot.png`: ABR response plot (if `plot_results=True`)
 
 ### HDF5 File Structure
-The HDF5 file contains:
+
+#### Single Subject Script (ExpyFun format)
+- `abr_response`: Raw ABR response array
+- `abr_response_filtered`: Bandpass filtered ABR (1-1000Hz)
+- `lags`: Time lags array (-200 to +600ms)
+- `cc_trials`: Individual trial cross-correlations
+- `x_in`: Click stimulus pulse trains
+- `n_trials`: Number of trials processed
+- `click_rate`, `t_click`, `eeg_fs`: Analysis parameters
+
+#### Original Script (h5py format)
 - **Datasets**:
   - `abr_response`: ABR response array
   - `lags`: Time lags array
@@ -204,16 +253,31 @@ music_preference/
 ├── code/
 │   └── analysis/
 │       └── derive_click_ABR/          # ABR derivation module
-│           ├── derive_click_ABR.py    # Main ABR derivation module
-│           ├── example_abr_usage.py   # Usage examples
+│           ├── derive_click_ABR.py    # Original ABR script (BrainVision)
+│           ├── derive_click_ABR_single_subject.py  # Music preference project script (.fif)
 │           ├── README_ABR.md          # This documentation
-│           ├── environment.yml         # Conda environment setup
-│           └── requirements.txt        # pip requirements
+│           ├── environment.yml        # Conda environment setup
+│           └── requirements.txt       # pip requirements
 ├── click_stim/                        # Click stimulus files
 │   ├── click000.wav
 │   ├── click001.wav
+│   ├── click002.wav
+│   ├── click003.wav
+│   └── click004.wav
+├── data/                              # EEG data and results
+│   ├── pilot_1/
+│   │   ├── pilot_1_click_trial1.fif
+│   │   ├── pilot_1_click_trial2.fif
+│   │   └── ...
+│   ├── pilot_2/
+│   │   ├── pilot_2_click_trial1.fif
+│   │   ├── pilot_2_click_trial2.fif
+│   │   └── ...
 │   └── ...
-└── data/                              # Output directory for results
+└── output/                            # Analysis results
+    ├── pilot_1_click_ABR.hdf5
+    ├── pilot_1_click_ABR.png
+    └── ...
 ```
 
 ## Error Handling

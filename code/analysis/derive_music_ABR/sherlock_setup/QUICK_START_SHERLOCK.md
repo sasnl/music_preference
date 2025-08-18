@@ -15,8 +15,12 @@ cd /scratch/users/$USER/music_preference
 
 ### 3. Set Up Environment (10 minutes)
 ```bash
+# Use automated setup script (recommended)
+./code/analysis/derive_music_ABR/sherlock_setup/setup_conda.sh
+
+# OR manual setup:
 source /share/software/user/open/miniconda3/etc/profile.d/conda.sh
-conda env create -f environment.yml
+conda env create -f code/analysis/derive_music_ABR/sherlock_setup/environment.yml
 conda activate music_anm_env
 ```
 
@@ -70,7 +74,8 @@ scancel <job_id>
 - If timeout: Increase `--time` in SLURM script
 
 ## Support Files
-- `code/analysis/derive_music_ABR/sherlock_setup/sherlock_README.md` - Detailed instructions
 - `code/analysis/derive_music_ABR/sherlock_setup/sherlock_job.slurm` - Main job script
 - `code/analysis/derive_music_ABR/sherlock_setup/test_sherlock_job.slurm` - Test job script
+- `code/analysis/derive_music_ABR/sherlock_setup/test_single_file.py` - Single file test script
 - `code/analysis/derive_music_ABR/sherlock_setup/environment.yml` - Dependencies
+- `code/analysis/derive_music_ABR/sherlock_setup/setup_conda.sh` - Automated conda setup

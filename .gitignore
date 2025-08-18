@@ -74,6 +74,9 @@ venv.bak/
 *~
 
 # Data files
+data/
+output/
+music_stim/music_anm/
 #*.csv
 #*.json
 #*.pkl

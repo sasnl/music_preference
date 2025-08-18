@@ -28,35 +28,40 @@ from mne.filter import resample
 from joblib import Parallel, delayed
 from expyfun.io import read_wav, write_hdf5
 
-# Try to import cochlea - this is required for the script
+# Import required modules with proper error handling
+COCHLEA_AVAILABLE = False
+nuclei = None
+
+# Try to import cochlea
 try:
     import cochlea
     COCHLEA_AVAILABLE = True
-    logging.info("Cochlea package imported successfully")
+    logging.info("✓ Cochlea package imported successfully")
 except ImportError as e:
-    COCHLEA_AVAILABLE = False
-    logging.error(f"Cochlea package not available: {e}")
-    logging.error("Please install cochlea package with: pip install git+https://github.com/mrkrd/cochlea.git")
+    logging.error(f"✗ Cochlea package not available: {e}")
+    logging.error("Please install cochlea package with:")
+    logging.error("  1. pip install 'Cython<3.0'")
+    logging.error("  2. pip install 'numpy<2.0'") 
+    logging.error("  3. pip install git+https://github.com/mrkrd/cochlea.git")
 
-    # Import ic_cn2018 module
-    try:
-        import sys
-        # Try multiple import paths for robustness
-        script_dir = os.path.dirname(__file__)
-        possible_paths = [
-            script_dir,  # Same directory as script
-            os.path.join(script_dir, 'derive_music_ABR'),  # Subdirectory
-            os.path.join(script_dir, '..'),  # Parent directory
-            os.path.join(script_dir, '..', 'code', 'analysis', 'derive_music_ABR'),  # Original location
-        ]
+# Try to import ic_cn2018 module
+try:
+    import sys
+    # Try multiple import paths for robustness
+    script_dir = os.path.dirname(__file__)
+    possible_paths = [
+        script_dir,  # Same directory as script
+        os.path.join(script_dir, '..'),  # Parent directory (derive_music_ABR)
+        os.path.join(script_dir, '..', '..', '..', 'derive_music_ABR'),  # Alternative path
+    ]
     
-    nuclei = None
     for path in possible_paths:
-        if path not in sys.path:
-            sys.path.insert(0, path)
+        abs_path = os.path.abspath(path)
+        if abs_path not in sys.path:
+            sys.path.insert(0, abs_path)
         try:
             import ic_cn2018 as nuclei
-            logging.info(f"ic_cn2018 module imported successfully from {path}")
+            logging.info(f"✓ ic_cn2018 module imported successfully from {abs_path}")
             break
         except ImportError:
             continue
@@ -65,9 +70,8 @@ except ImportError as e:
         raise ImportError("Could not import ic_cn2018 module from any location")
         
 except ImportError as e:
-    logging.error(f"ic_cn2018 module not available: {e}")
+    logging.error(f"✗ ic_cn2018 module not available: {e}")
     logging.error("Please ensure ic_cn2018.py is in the derive_music_ABR directory")
-    nuclei = None
 
 # Configure logging
 logging.basicConfig(

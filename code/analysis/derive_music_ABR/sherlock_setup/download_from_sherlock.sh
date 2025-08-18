@@ -4,7 +4,7 @@
 # Configuration
 SHERLOCK_USER=$USER
 SHERLOCK_HOST="login.sherlock.stanford.edu"
-REMOTE_DIR="$SCRATCH/music_preference"
+REMOTE_DIR="/scratch/users/$USER/music_preference"
 LOCAL_DIR="."
 
 echo "Downloading results from Sherlock..."

@@ -40,16 +40,47 @@ fi
 # Check if environment already exists
 if conda env list | grep -q "music_anm_env"; then
     echo "Environment music_anm_env already exists"
-    echo "To activate it, run: conda activate music_anm_env"
-else
-    echo "Creating conda environment..."
-    conda env create -f environment.yml
+    echo "Checking if environment is functional..."
     
-    if [ $? -eq 0 ]; then
-        echo "Environment created successfully!"
+    # Test if environment can be activated and has required packages
+    if conda activate music_anm_env 2>/dev/null && python -c "import numpy, scipy, mne" 2>/dev/null; then
+        echo "✓ Environment is functional"
         echo "To activate it, run: conda activate music_anm_env"
     else
-        echo "Error creating environment. Please check the error messages above."
+        echo "⚠ Environment exists but may have issues. Consider recreating it."
+        echo "To recreate: conda env remove -n music_anm_env && conda env create -f code/analysis/derive_music_ABR/sherlock_setup/environment.yml"
+    fi
+else
+    echo "Creating conda environment..."
+    
+    # Use full path to environment file for robustness
+    ENV_FILE="code/analysis/derive_music_ABR/sherlock_setup/environment.yml"
+    if [ -f "$ENV_FILE" ]; then
+        conda env create -f "$ENV_FILE"
+        
+        if [ $? -eq 0 ]; then
+            echo "✓ Environment created successfully!"
+            echo "Testing environment..."
+            
+            # Test the environment
+            if conda activate music_anm_env 2>/dev/null && python -c "import numpy, scipy, mne; print('Basic packages OK')" 2>/dev/null; then
+                echo "✓ Environment test passed"
+                echo "To activate it, run: conda activate music_anm_env"
+            else
+                echo "⚠ Environment created but basic test failed"
+                echo "You may need to install additional packages manually"
+            fi
+        else
+            echo "✗ Error creating environment. Please check the error messages above."
+            echo "Common solutions:"
+            echo "1. Check internet connectivity"
+            echo "2. Try: conda clean --all"
+            echo "3. Update conda: conda update conda"
+            exit 1
+        fi
+    else
+        echo "✗ Environment file not found: $ENV_FILE"
+        echo "Please ensure you're in the project root directory"
         exit 1
     fi
 fi
