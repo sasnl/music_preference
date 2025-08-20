@@ -56,8 +56,16 @@ def load_eeg_file(subject_id, data_root='./data/'):
     subject_dir = os.path.join(data_root, subject_id)
     eeg_file = os.path.join(subject_dir, f"{subject_id}.vhdr")
     
+    # If the standard file doesn't exist, look for trial-specific files
     if not os.path.exists(eeg_file):
-        raise FileNotFoundError(f"EEG file not found: {eeg_file}")
+        # Look for any .vhdr file in the subject directory
+        import glob
+        vhdr_files = glob.glob(os.path.join(subject_dir, "*.vhdr"))
+        if vhdr_files:
+            eeg_file = vhdr_files[0]  # Use the first .vhdr file found
+            print(f"Standard file not found, using: {os.path.basename(eeg_file)}")
+        else:
+            raise FileNotFoundError(f"No .vhdr files found in: {subject_dir}")
     
     print(f"Loading EEG file: {eeg_file}")
     raw = mne.io.read_raw_brainvision(eeg_file, preload=True, verbose=False)
@@ -246,7 +254,7 @@ def save_preprocessed_data(raw, subject_id, output_root='./output/'):
     print(f"\n=== Saving preprocessed data ===")
     
     os.makedirs(output_root, exist_ok=True)
-    output_file = os.path.join(output_root, f"{subject_id}_cortical_preprocessed.fif")
+    output_file = os.path.join(output_root, f"{subject_id}_cortical_preprocessed_raw.fif")
     raw.save(output_file, overwrite=True, verbose=False)
     print(f"Preprocessed data saved to: {output_file}")
     
