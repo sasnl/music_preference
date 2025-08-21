@@ -52,19 +52,73 @@ run the script on stimlus computer: [`/code/stimulus_presentation/music_preferen
 
 # Analysis
 ## Subcortical Responses
- ### [Click ABR Analysis](https://github.com/sasnl/music_preference/tree/main/code/analysis/derive_click_ABR)
- - **Cross-correlation analysis** for ABR derivation from click stimuli
- - **Modular Python implementation**: [`code/analysis/derive_click_ABR/derive_click_ABR.py`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/derive_click_ABR.py)
- - **Key Features**:
-   - Configurable parameters (EEG sampling frequency, filtering, time ranges)
-   - Command-line interface and Python module usage
-   - HDF5 data storage with rich metadata
-   - Optional plot generation
-   - Batch processing support
-   - Comprehensive error handling and logging
- - **Input**: BrainVision (.vhdr) files with ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
- - **Output**: ABR response arrays, time lags, HDF5 files, plots, and summary statistics
- - **Documentation**: See [`code/analysis/derive_click_ABR/README_ABR.md`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/README_ABR.md) for detailed usage
+
+### **Click ABR**
+Script: [`code/analysis/derive_click_ABR/derive_click_ABR_single_subject.py`](code/analysis/derive_click_ABR/derive_click_ABR_single_subject.py)
+
+**Pipeline Steps:**
+1. **Click stimulus processing**: Load click stimuli (click000.wav, click001.wav, etc.) and create pulse trains
+   - Find click onset times when stimulus amplitude transitions from 0 to 1
+   - Convert to EEG sample indices and create binary pulse train arrays
+   - Handle multiple click files per subject (typically 5 trials × 60 seconds each)
+2. **EEG preprocessing**: Load .fif files with comprehensive filtering pipeline
+   - Create differential ABR channels: Plus_R - Minus_R, Plus_L - Minus_L
+   - Apply 1 Hz high-pass filter for baseline removal
+   - Apply notch filters at 60, 180, 300, 420 Hz (power line harmonics)
+   - Average across left/right channels for single ABR trace per trial
+3. **Cross-correlation analysis**: FFT-based frequency domain cross-correlation
+   - Compute cross-correlation: `cc = ifft(EEG_fft × conj(Click_fft))`
+   - Average cross-correlation across all click trials
+   - Normalize by click rate (40 Hz) and trial duration (60 seconds)
+4. **ABR extraction**: Extract -200ms to +600ms response window
+   - Apply final bandpass filter (1-1000 Hz) for clean ABR waveform
+   - Generate comprehensive visualization with 6-panel plots
+   - Perform automatic peak detection in Wave I-V region (1-8 ms)
+
+**Key Features:**
+- **Robust preprocessing**: Comprehensive filtering pipeline with notch filtering
+- **Multi-trial averaging**: Improved SNR through trial-wise cross-correlation averaging
+- **Automatic peak detection**: Wave I-V analysis with latency and amplitude extraction
+- **Comprehensive visualization**: Individual trials, averaged responses, zoomed regions
+- **Summary statistics**: Peak latency, amplitude, RMS values, and processing metadata
+
+**Usage:**
+```bash
+# Single subject analysis
+python code/analysis/derive_click_ABR/derive_click_ABR_single_subject.py pilot_2
+
+# Expected files:
+# - Click stimuli: click_stim/click000.wav, click001.wav, etc.
+# - EEG data: data/pilot_2/pilot_2_click_trial*.fif
+```
+
+**Requirements:**
+- Click stimulus files: `click_stim/click{000-004}.wav`
+- EEG trial files: `data/{subject}/{subject}_click_trial*.fif`
+- ABR channels: Plus_R, Minus_R, Plus_L, Minus_L
+
+**Output:**
+- **HDF5 file**: `output/{subject}_click_ABR.hdf5` containing:
+  - `abr_response`: Raw cross-correlation ABR
+  - `abr_response_filtered`: Bandpass filtered ABR (1-1000 Hz)
+  - `lags`: Time axis (-200 to +600 ms)
+  - `cc_trials`: Individual trial cross-correlations
+  - Processing metadata and parameters
+- **Visualization**: `{subject}_click_ABR.png` with 6-panel analysis plots
+- **Statistics**: Peak detection, latency analysis, and amplitude measures
+
+#### **Modular Click ABR Implementation**
+- **Modular Python implementation**: [`code/analysis/derive_click_ABR/derive_click_ABR.py`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/derive_click_ABR.py)
+- **Key Features**:
+  - Configurable parameters (EEG sampling frequency, filtering, time ranges)
+  - Command-line interface and Python module usage
+  - HDF5 data storage with rich metadata
+  - Optional plot generation
+  - Batch processing support
+  - Comprehensive error handling and logging
+- **Input**: BrainVision (.vhdr) files with ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
+- **Output**: ABR response arrays, time lags, HDF5 files, plots, and summary statistics
+- **Documentation**: See [`code/analysis/derive_click_ABR/README_ABR.md`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/README_ABR.md) for detailed usage
 
  ### Continuous Music ABR Analysis
 
