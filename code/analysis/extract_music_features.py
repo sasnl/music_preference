@@ -7,6 +7,7 @@ Extracts multiple audio features for music preference analysis:
 2. Full-band Hilbert envelope (alternative/fallback)
 3. Half-wave rectified first derivative of amplitude envelope
 4. Spectral novelty/flux following Müller (2015)
+5. ANM (Auditory Nerve Model) regressor (optional, auto-detected from HDF5 files)
 
 All features are downsampled to 128 Hz and z-score normalized.
 
@@ -23,6 +24,14 @@ import argparse
 import warnings
 from pathlib import Path
 from typing import Tuple, Optional, Dict, Any
+
+# Try to import h5py for ANM files
+try:
+    import h5py
+    H5PY_AVAILABLE = True
+except ImportError:
+    H5PY_AVAILABLE = False
+    warnings.warn("h5py not available. ANM features will be skipped.")
 
 # Try to import gammatone package, fallback gracefully
 try:
@@ -129,6 +138,75 @@ def compute_spectral_flux(audio: np.ndarray, sr: int, frame_length: int = 374,
     return spectral_flux
 
 
+def find_anm_file(audio_path: str) -> Optional[str]:
+    """
+    Auto-detect corresponding ANM file based on audio filename.
+    
+    Args:
+        audio_path: path to audio file (e.g., "1-1_proc.wav")
+    
+    Returns:
+        anm_file_path: path to corresponding ANM file, or None if not found
+    """
+    if not H5PY_AVAILABLE:
+        return None
+    
+    audio_path = Path(audio_path)
+    audio_stem = audio_path.stem  # e.g., "1-1_proc"
+    
+    # Look in music_anm directory relative to audio path
+    # Assumes structure: music_stim/preprocesed/N/X-Y_proc.wav -> music_stim/music_anm/single_X-Y_proc_anm.hdf5
+    
+    # Get the music_stim root directory
+    music_stim_root = None
+    for parent in audio_path.parents:
+        if parent.name == 'music_stim':
+            music_stim_root = parent
+            break
+    
+    if music_stim_root is None:
+        # Try relative path from current directory
+        music_stim_root = Path('music_stim')
+    
+    anm_dir = music_stim_root / 'music_anm'
+    anm_filename = f"single_{audio_stem}_anm.hdf5"
+    anm_path = anm_dir / anm_filename
+    
+    if anm_path.exists():
+        return str(anm_path)
+    else:
+        print(f"Warning: ANM file not found: {anm_path}")
+        return None
+
+
+def load_anm_feature(anm_file_path: str) -> Tuple[np.ndarray, float]:
+    """
+    Load ANM positive-going response from HDF5 file.
+    
+    Args:
+        anm_file_path: path to ANM HDF5 file
+    
+    Returns:
+        anm_signal: ANM positive response signal
+        anm_fs: ANM sampling rate
+    """
+    if not H5PY_AVAILABLE:
+        raise ImportError("h5py required for ANM file loading")
+    
+    print(f"Loading ANM file: {anm_file_path}")
+    
+    with h5py.File(anm_file_path, 'r') as f:
+        # Load positive-going ANM response
+        anm_signal = f['expyfun/key_x_in_pos'][0, :].astype(np.float32)
+        
+        # Load sampling rate
+        anm_fs = float(f['expyfun/key_fs'][0])
+    
+    print(f"ANM signal length: {len(anm_signal)} samples at {anm_fs} Hz ({len(anm_signal)/anm_fs:.2f} seconds)")
+    
+    return anm_signal, anm_fs
+
+
 def resample_to_target_rate(signal: np.ndarray, orig_rate: float, target_rate: float = 128.0) -> np.ndarray:
     """Resample signal to target rate using scipy."""
     if orig_rate == target_rate:
@@ -190,11 +268,15 @@ def save_features(features_dict: Dict[str, np.ndarray], metadata: Dict[str, Any]
 
 
 def plot_features(features_dict: Dict[str, np.ndarray], output_prefix: str) -> None:
-    """Create QC plot showing all four feature curves."""
-    fig, axes = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
-    fig.suptitle('Extracted Music Features', fontsize=14)
-    
+    """Create QC plot showing all feature curves."""
     time_s = features_dict['time_s']
+    
+    # Check if ANM is available and determine subplot count
+    has_anm = 'anm' in features_dict
+    n_plots = 5 if has_anm else 4
+    
+    fig, axes = plt.subplots(n_plots, 1, figsize=(12, 8 + 2 * has_anm), sharex=True)
+    fig.suptitle('Extracted Music Features', fontsize=14)
     
     # Plot each feature
     features_to_plot = [
@@ -203,6 +285,10 @@ def plot_features(features_dict: Dict[str, np.ndarray], output_prefix: str) -> N
         ('amp_env_deriv_hwrect', 'Half-wave Rectified Envelope Derivative', 'red'),
         ('spectral_flux', 'Spectral Flux (Novelty)', 'purple')
     ]
+    
+    # Add ANM if available
+    if has_anm:
+        features_to_plot.append(('anm', 'ANM (Auditory Nerve Model)', 'orange'))
     
     for i, (key, title, color) in enumerate(features_to_plot):
         if key in features_dict:
@@ -278,13 +364,33 @@ def extract_music_features(audio_path: str, target_sr: Optional[int] = None,
     spectral_flux = compute_spectral_flux(audio, sr, frame_length, hop_length)
     features['spectral_flux_raw'] = spectral_flux
     
+    # 4. ANM features (optional)
+    anm_signal = None
+    anm_rate = None
+    anm_file_path = find_anm_file(audio_path)
+    
+    if anm_file_path:
+        try:
+            print("Loading ANM features...")
+            anm_signal, anm_rate = load_anm_feature(anm_file_path)
+            features['anm_raw'] = anm_signal
+        except Exception as e:
+            print(f"Warning: Failed to load ANM features: {e}")
+            anm_signal = None
+    else:
+        print("ANM file not found, skipping ANM features...")
+    
     # Original sample rates for resampling
     audio_rate = float(sr)
     spectral_flux_rate = float(sr) / hop_length
     
-    print(f"Original rates - Audio: {audio_rate} Hz, Spectral flux: {spectral_flux_rate:.1f} Hz")
+    # Add ANM rate info if available
+    if anm_signal is not None and anm_rate is not None:
+        print(f"Original rates - Audio: {audio_rate} Hz, Spectral flux: {spectral_flux_rate:.1f} Hz, ANM: {anm_rate} Hz")
+    else:
+        print(f"Original rates - Audio: {audio_rate} Hz, Spectral flux: {spectral_flux_rate:.1f} Hz")
     
-    # 4. Downsample all to 128 Hz
+    # 5. Downsample all to 128 Hz
     target_rate = 128.0
     print(f"Downsampling all features to {target_rate} Hz...")
     
@@ -293,21 +399,36 @@ def extract_music_features(audio_path: str, target_sr: Optional[int] = None,
     deriv_env_128 = resample_to_target_rate(envelope_deriv, audio_rate, target_rate)
     flux_128 = resample_to_target_rate(spectral_flux, spectral_flux_rate, target_rate)
     
-    # 5. Truncate to shortest length
+    # Downsample ANM if available
+    anm_128 = None
+    if anm_signal is not None and anm_rate is not None:
+        anm_128 = resample_to_target_rate(anm_signal, anm_rate, target_rate)
+    
+    # 6. Truncate to shortest length
     print("Truncating features to matching length...")
-    primary_env_128, hilbert_env_128, deriv_env_128, flux_128 = truncate_to_shortest(
-        primary_env_128, hilbert_env_128, deriv_env_128, flux_128
-    )
+    if anm_128 is not None:
+        primary_env_128, hilbert_env_128, deriv_env_128, flux_128, anm_128 = truncate_to_shortest(
+            primary_env_128, hilbert_env_128, deriv_env_128, flux_128, anm_128
+        )
+    else:
+        primary_env_128, hilbert_env_128, deriv_env_128, flux_128 = truncate_to_shortest(
+            primary_env_128, hilbert_env_128, deriv_env_128, flux_128
+        )
     
     final_length = len(primary_env_128)
     print(f"Final feature length: {final_length} samples ({final_length/target_rate:.2f} seconds)")
     
-    # 6. Z-score normalize
+    # 7. Z-score normalize
     print("Applying z-score normalization...")
     primary_env_norm = zscore_normalize(primary_env_128)
     hilbert_env_norm = zscore_normalize(hilbert_env_128)
     deriv_env_norm = zscore_normalize(deriv_env_128)
     flux_norm = zscore_normalize(flux_128)
+    
+    # Normalize ANM if available
+    anm_norm = None
+    if anm_128 is not None:
+        anm_norm = zscore_normalize(anm_128)
     
     # 7. Create time axis
     time_axis = create_time_axis(final_length, target_rate)
@@ -320,6 +441,10 @@ def extract_music_features(audio_path: str, target_sr: Optional[int] = None,
         'amp_env_deriv_hwrect': deriv_env_norm,
         'spectral_flux': flux_norm
     }
+    
+    # Add ANM feature if available
+    if anm_norm is not None:
+        features_final['anm'] = anm_norm
     
     # Standardize naming for consistent output
     if envelope_type == 'hilbert':
@@ -334,7 +459,10 @@ def extract_music_features(audio_path: str, target_sr: Optional[int] = None,
         'envelope_type': envelope_type,
         'n_samples_original': len(audio),
         'n_samples_features': final_length,
-        'duration_seconds': float(final_length / target_rate)
+        'duration_seconds': float(final_length / target_rate),
+        'anm_available': anm_norm is not None,
+        'anm_file': anm_file_path if anm_file_path else None,
+        'anm_original_sr': float(anm_rate) if anm_rate else None
     }
     
     # Save outputs
