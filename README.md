@@ -1,22 +1,5 @@
 # Music Preference Study
 
-## Table of Contents
-- [Participants Onboarding](#participants-onboarding)
-  - [Musicianship Questionnaire](#musicianship-questionnaire)
-  - [Selection of Favorite Songs](#selection-of-favorite-songs)
-  - [Music Stimuli Preprocessing](#music-stimuli-preprocessing)
-- [Experiment Procedure](#experiment-procedure)
-  - [5-Minute Click Trains](#5-minute-click-trains)
-  - [Latin Square Randomized Song Presentation](#latin-square-randomized-song-presentation)
-  - [Behavioral Questions After Each Song](#behavioral-questions-after-each-song)
-    - [Preference for the Song](#preference-for-the-song)
-    - [Pleasantness](#pleasantness)
-    - [Valence/Arousal](#valencearousal)
-    - [Musical Chills](#musical-chills)
-- [Analysis](#analysis)
-  - [Click ABR Analysis](#click-abr-analysis)
-  - [Continuous Music ABR Analysis](#continuous-music-abr-analysis)
-
 ## Participants Onboarding
 
 ### [Musicianship Questionnair](https://github.com/sasnl/music_preference/blob/main/MusicianshipQuestionnaire.md)
