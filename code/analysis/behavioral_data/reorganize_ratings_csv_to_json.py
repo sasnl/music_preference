@@ -136,7 +136,7 @@ def display_sample_data(data, max_songs=3):
 def main():
     # File paths
     csv_file = "/Users/tongshan/Documents/music_preference/data/Organized Behavioral Folder - Ratings.csv"
-    output_file = "/Users/tongshan/Documents/music_preference/data/reorganized_ratings.json"
+    output_file = "/Users/tongshan/Documents/music_preference/data/beh_ratings.json"
     
     # Check if input file exists
     if not os.path.exists(csv_file):

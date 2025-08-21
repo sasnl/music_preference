@@ -183,7 +183,7 @@ music_preference/
 │   │   ├── pilot_2/ ... pilot_5/        # Additional subjects
 │   │
 │   ├── Organized Behavioral Folder - Ratings.csv # Original behavioral ratings
-│   └── reorganized_ratings.json         # Restructured behavioral data
+│   └── beh_ratings.json                 # Restructured behavioral data
 │
 ├── music_stim/                           # Music stimuli and features
 │   ├── original/                         # Original MP3 files
@@ -264,7 +264,7 @@ The repository includes complete Sherlock cluster setup for large-scale processi
 The behavioral ratings are organized in a hierarchical JSON structure for easy access:
 
 **Original format**: CSV with rows (songs) × columns (participant-question combinations)
-**New format**: `reorganized_ratings.json` with structure:
+**New format**: `beh_ratings.json` with structure:
 ```json
 {
   "preference": {
@@ -287,7 +287,7 @@ The behavioral ratings are organized in a hierarchical JSON structure for easy a
 **Access patterns**:
 ```python
 import json
-data = json.load(open('data/reorganized_ratings.json'))
+data = json.load(open('data/beh_ratings.json'))
 rating = data["preference"]["pilot_2"]["2-1"]  # Get pilot_2's preference for song 2-1
 ```
 

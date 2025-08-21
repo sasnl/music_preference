@@ -15,10 +15,10 @@ total length of music = 68:02
   3. **Apply Low-Pass Envelope Division (Flatten)**
   4. **Normalize RMS (window size: 0.01)**
   5. **Resample to 48 kHz**
-- **Script**: [`/code/stimulus_presentation/music_batch_preproc.py`](https://github.com/sasnl/music_preference/blob/main/code/stimulus_presentation/music_batch_preproc.py)
+- **Script**: [`code/stimulus_presentation/music_batch_preproc.py`](code/stimulus_presentation/music_batch_preproc.py)
 
 **To run the script**
-1. install environment according to `/code/stimulus_presentation/env.yml`
+1. install environment according to `code/stimulus_presentation/env.yml`
 ```
 conda env create -f env.yml
 conda activate music_preproc
@@ -28,13 +28,13 @@ conda activate music_preproc
 python code/stimulus_presentation/music_batch_preproc.py --input_dir music_stim/original --output_dir music_stim/preprocesed --no_trim
 ```
 ## Experiment Procedure
-### 1. 5-Minute Click Trains: [`/click_stim`](https://github.com/sasnl/music_preference/tree/main/click_stim)
+### 1. 5-Minute Click Trains: [`click_stim/`](click_stim/)
 ### 2. Latin Square Randomized Song Presentation
-- code to generate randomized song order: `/code/stimulus_presentation/generate_music_orders.py`. Generated order file: `/code/stimulus_presentation/music_presentation_orders.csv`
+- code to generate randomized song order: `code/stimulus_presentation/generate_music_orders.py`. Generated order file: `code/stimulus_presentation/music_presentation_orders.csv`
 - Participants will passively listening to the songs, while EEG recording with both ABR+Cortical system
 - EEG recording at 10k Hz / 25k Hz
 - Stimlus presentation at 48k Hz
-run the script on stimlus computer: [`/code/stimulus_presentation/music_preference_presentation.py`](https://github.com/sasnl/music_preference/blob/main/code/stimulus_presentation/music_preference_presentation.py)
+run the script on stimlus computer: [`code/stimulus_presentation/music_preference_presentation.py`](code/stimulus_presentation/music_preference_presentation.py)
 ### 3. Behavioral Questions After Each Song
 - in stimlus presentation script, questions pop up when a song ends
 #### Preference for the Song
@@ -49,6 +49,36 @@ run the script on stimlus computer: [`/code/stimulus_presentation/music_preferen
 #### Musical Chills
  To what extent did you feel chills, goosebumps, or a strong emotional reaction while listening to the song?
  (1 = Not at all, 9 = Very strongly)
+
+### Behavioral Data Organization
+The behavioral ratings are collected during stimulus presentation and organized in a structured JSON format for analysis:
+
+**File locations:**
+- **Original CSV**: `data/Organized Behavioral Folder - Ratings.csv` 
+- **Reorganized JSON**: `data/beh_ratings.json`
+
+**Data structure** (JSON format):
+```json
+{
+  "preference": {
+    "pilot_1": {"1-1": 9, "1-2": 8, "1-3": 9, ...},
+    "pilot_2": {"1-1": 6, "1-2": 7, "1-3": 5, ...},
+    ...
+  },
+  "pleasantness": { ... },
+  "arousal": { ... },
+  "chills": { ... }
+}
+```
+
+**Conversion script**: [`code/analysis/behavioral_data/reorganize_ratings_csv_to_json.py`](code/analysis/behavioral_data/reorganize_ratings_csv_to_json.py)
+
+**Usage example**:
+```python
+import json
+data = json.load(open('data/beh_ratings.json'))
+preference_rating = data["preference"]["pilot_2"]["2-1"]  # Get pilot_2's preference for song 2-1
+```
 
 # Analysis
 ## Subcortical Responses
@@ -89,12 +119,12 @@ python code/analysis/derive_click_ABR/derive_click_ABR_single_subject.py pilot_2
 
 # Expected files:
 # - Click stimuli: click_stim/click000.wav, click001.wav, etc.
-# - EEG data: data/pilot_2/pilot_2_click_trial*.fif
+# - EEG data: data/preprocessed/pilot_2/preprocessed_trials/pilot_2_click_trial*.fif
 ```
 
 **Requirements:**
 - Click stimulus files: `click_stim/click{000-004}.wav`
-- EEG trial files: `data/{subject}/{subject}_click_trial*.fif`
+- EEG trial files: `data/preprocessed/{subject}/preprocessed_trials/{subject}_click_trial*.fif`
 - ABR channels: Plus_R, Minus_R, Plus_L, Minus_L
 
 **Output:**
@@ -108,7 +138,7 @@ python code/analysis/derive_click_ABR/derive_click_ABR_single_subject.py pilot_2
 - **Statistics**: Peak detection, latency analysis, and amplitude measures
 
 #### **Modular Click ABR Implementation**
-- **Modular Python implementation**: [`code/analysis/derive_click_ABR/derive_click_ABR.py`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/derive_click_ABR.py)
+- **Modular Python implementation**: [`code/analysis/derive_click_ABR/derive_click_ABR.py`](code/analysis/derive_click_ABR/derive_click_ABR.py)
 - **Key Features**:
   - Configurable parameters (EEG sampling frequency, filtering, time ranges)
   - Command-line interface and Python module usage
@@ -118,7 +148,7 @@ python code/analysis/derive_click_ABR/derive_click_ABR_single_subject.py pilot_2
   - Comprehensive error handling and logging
 - **Input**: BrainVision (.vhdr) files with ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
 - **Output**: ABR response arrays, time lags, HDF5 files, plots, and summary statistics
-- **Documentation**: See [`code/analysis/derive_click_ABR/README_ABR.md`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/README_ABR.md) for detailed usage
+- **Documentation**: See [`code/analysis/derive_click_ABR/README_ABR.md`](code/analysis/derive_click_ABR/README_ABR.md) for detailed usage
 
  ### Continuous Music ABR Analysis
 
@@ -218,7 +248,7 @@ done
 ```
 
 **Requirements:**
-- Preprocessed EEG trial files: `data/{subject}/{subject}-trial*_proc_originalptp*.fif`
+- Preprocessed EEG trial files: `data/preprocessed/{subject}/preprocessed_trials/{subject}-trial*_proc_originalptp*.fif`
 - ANM regressors: `music_stim/music_anm/single_{song}_proc_anm.hdf5`
 - ABR channels: Plus_R, Minus_R, Plus_L, Minus_L
 
@@ -314,7 +344,7 @@ python code/analysis/eeg_preprocessing/batch_ica_artifact_removal.py \
     --output_suffix "_ica_cleaned"
 ```
 
-**Output**: ICA-cleaned trial files in `output_batch_ica/` with consistent artifact removal patterns
+**Output**: ICA-cleaned trial files in `data/ica_cleaned/{subject_id}/` with consistent artifact removal patterns
 
 #### **Preprocessing Summary**
 - **Input**: Raw BrainVision EEG files (25 kHz sampling)
