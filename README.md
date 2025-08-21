@@ -67,10 +67,114 @@ run the script on stimlus computer: [`/code/stimulus_presentation/music_preferen
  - **Documentation**: See [`code/analysis/derive_click_ABR/README_ABR.md`](https://github.com/sasnl/music_preference/blob/main/code/analysis/derive_click_ABR/README_ABR.md) for detailed usage
 
  ### Continuous Music ABR Analysis
- - Derive ANM regressor: ``
- - Use a 0–600 ms window to capture early responses.
- - Derive music ABR using **deconvolution** as in [Shan et al. (2024)](https://www.nature.com/articles/s41598-023-50438-0)
- - Future analyses can explore acoustic feature differences across stimuli.
+
+#### **ANM Regressor Generation**
+Script: [`code/analysis/derive_music_ABR/generate_music_anm_regressors.py`](code/analysis/derive_music_ABR/generate_music_anm_regressors.py)
+
+**Sherlock Cluster Version**: [`code/analysis/derive_music_ABR/sherlock_setup/generate_music_anm_regressors_sherlock.py`](code/analysis/derive_music_ABR/sherlock_setup/generate_music_anm_regressors_sherlock.py)
+
+**Pipeline Steps:**
+1. **Audio Loading**: Process all preprocessed music files (`*_proc.wav`)
+2. **ANM Generation**: Use Zilany2014 auditory nerve model via cochlea package
+3. **Dual Polarity**: Generate both positive and negative polarity ANM responses
+4. **Frequency Mapping**: Multiple characteristic frequencies (CF) from 125 Hz to 16 kHz  
+5. **Resampling**: Downsample from 100 kHz model rate to 25 kHz EEG rate
+6. **HDF5 Storage**: Save individual ANM files per song (`single_{song}_proc_anm.hdf5`)
+
+**Key Features:**
+- **High-performance computing**: Optimized for Stanford Sherlock cluster with 32 cores, 128GB RAM
+- **Memory management**: Intelligent memory monitoring and garbage collection
+- **Parallel processing**: Joblib parallelization across characteristic frequencies
+- **Robust error handling**: Comprehensive logging and checkpoint recovery
+- **Batch processing**: Processes all 15 music files automatically
+
+**Local Usage:**
+```bash
+# Basic local processing
+python code/analysis/derive_music_ABR/generate_music_anm_regressors.py
+
+# Check dependencies
+python -c "import cochlea, numpy, scipy, mne; print('Dependencies OK')"
+```
+
+**Sherlock Cluster Usage:**
+```bash
+# Submit job to Sherlock
+cd code/analysis/derive_music_ABR/sherlock_setup
+sbatch sherlock_job.slurm
+
+# Monitor job status
+squeue -u $USER
+
+# Check outputs
+ls -la /scratch/users/$USER/music_preference/data/
+```
+
+**Dependencies:**
+- `cochlea` package: `pip install git+https://github.com/mrkrd/cochlea.git`
+- `ic_cn2018.py`: Auditory nerve model implementation
+- Standard packages: `numpy`, `scipy`, `mne`, `joblib`, `psutil`
+
+**Output Structure:**
+- **Individual files**: `music_stim/music_anm/single_{song}_proc_anm.hdf5`
+- **Contents per file**: 
+  - `key_x_in_pos`: Positive polarity ANM response
+  - `key_x_in_neg`: Negative polarity ANM response  
+  - `key_fs`: Sampling rate (25 kHz)
+  - Metadata: Processing parameters and file information
+
+#### **Music ABR Derivation**
+Script: [`code/analysis/derive_music_ABR/derive_music_preference_ABR.py`](code/analysis/derive_music_ABR/derive_music_preference_ABR.py)
+
+**Pipeline Steps:**
+1. **Preference categorization**: Auto-identify preferred songs based on subject naming convention
+   - Subject `pilot_N` prefers songs `N-1`, `N-2`, `N-3` (e.g., pilot_2 prefers 2-1, 2-2, 2-3)
+   - Remaining 12 songs classified as non-preferred
+2. **EEG preprocessing**: Load ABR channels (Plus_R, Minus_R, Plus_L, Minus_L)
+   - Create differential channels (Plus - Minus) for left and right ears
+   - Apply 1 Hz high-pass filter and 60/180/300/420 Hz notch filters
+   - Average across left/right channels for single ABR trace
+3. **ANM regressor matching**: Load corresponding ANM regressors for each song
+   - Use both positive and negative polarity ANM responses
+   - Match regressor length to EEG trial duration
+4. **Deconvolution analysis**: FFT-based temporal response function (TRF) estimation
+   - Compute TRF using: `H(ω) = conj(X(ω)) * Y(ω) / |X(ω)|²`
+   - Average positive and negative polarity responses
+   - Extract -200 to +600 ms ABR window with 2.75 ms ANM shift compensation
+5. **Preference comparison**: Average ABR across preferred vs non-preferred trials
+   - Final bandpass filter: 1-1000 Hz for clean ABR waveforms
+   - Statistical comparison of preference-based responses
+
+**Key Features:**
+- **Automated processing**: Single command per subject with preference auto-detection
+- **Robust preprocessing**: Comprehensive filtering and artifact removal
+- **Dual-polarity deconvolution**: Improved SNR using both ANM polarities
+- **Time window optimization**: 0-600 ms window captures early brainstem responses
+- **Comparative analysis**: Direct preferred vs non-preferred ABR comparison
+
+**Usage:**
+```bash
+# Single subject analysis
+python code/analysis/derive_music_ABR/derive_music_preference_ABR.py pilot_2
+
+# Batch processing for all subjects  
+for subject in pilot_1 pilot_2 pilot_3 pilot_4 pilot_5; do
+    python code/analysis/derive_music_ABR/derive_music_preference_ABR.py $subject
+done
+```
+
+**Requirements:**
+- Preprocessed EEG trial files: `data/{subject}/{subject}-trial*_proc_originalptp*.fif`
+- ANM regressors: `music_stim/music_anm/single_{song}_proc_anm.hdf5`
+- ABR channels: Plus_R, Minus_R, Plus_L, Minus_L
+
+**Output:**
+- **HDF5 file**: `output/{subject}_music_preference_ABR.hdf5` containing:
+  - `w_preferred`, `w_nonpreferred`: Raw TRF responses
+  - `abr_preferred`, `abr_nonpreferred`: Filtered ABR waveforms (1-1000 Hz)
+  - `lags`: Time axis (-200 to +600 ms)
+  - Metadata: Song lists, trial counts, processing parameters
+- **Visualization**: `{subject}_music_preference_ABR.png` with full and zoomed ABR comparison plots
 
 ## Cortical Responses
 ### EEG preprocessing
