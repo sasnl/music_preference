@@ -61,7 +61,7 @@ class TRFMusicPreferenceAnalysis:
         
         # TRF parameters
         self.tmin = -0.1  # -100ms
-        self.tmax = 0.4   # 400ms  
+        self.tmax = 0.7   # 700ms  
         self.lambda_range = np.logspace(-6, 6, 25)  # 10^-6 to 10^6
         self.n_folds = 5  # Cross-validation folds
         
