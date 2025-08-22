@@ -155,7 +155,7 @@ def plot_group_fz_weights(output_dir):
     plt.legend(fontsize=12, loc='best')
     
     # Set limits for better visualization
-    y_max = max(np.max(np.abs(mean_preferred)), np.max(np.abs(mean_nonpreferred))) * 1.5
+    y_max = max(np.max(np.abs(mean_preferred)), np.max(np.abs(mean_nonpreferred))) * 2
     plt.ylim(-y_max, y_max)
     
     # Add participant information
