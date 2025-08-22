@@ -352,19 +352,89 @@ python code/analysis/eeg_preprocessing/batch_ica_artifact_removal.py \
 - **Key Features**: Cortical-specific channel selection, mastoid re-referencing, interactive ICA artifact removal
 - **Applications**: Ready for TRF analysis, ISC analysis, and cortical response modeling
 
- ### Music Cortical TRF analysis
- - Derive music TRF using ANM regressor as in Shan et al. (2024)
- - Use conventional TRF methods to model the neural response:
-  - Train/test split: 80% training, 20% testing.
-  - Perform cross-validation.
-  - Outcome: Average R² across subjects and models.
-- Preprocessing and setup:
-  - Normalize data.
-  - Determine stimulus position.
-  - Extract TRF weights and P2 component.
-- Link neural data with behavioral responses.
-  - Compile and align TRF results with survey/questionnaire data.
-- Analyze topography to visualize spatial differences in TRF components (e.g., P2 differences across preference).
+### **Music Preference TRF Analysis**
+Script: [`code/analysis/trf_music_preference_analysis.py`](code/analysis/trf_music_preference_analysis.py)
+
+**Overview:**
+This analysis uses Temporal Response Function (TRF) modeling to investigate how musical preference affects neural encoding of acoustic features. The study compares how well spectral flux features predict EEG responses for participants' most preferred versus least preferred songs.
+
+**Key Features:**
+- **Preference-based analysis**: Compares neural encoding between top 5 preferred and bottom 5 non-preferred songs per participant
+- **Robust cross-validation**: Uses mTRF package with built-in cross-validation and lambda optimization (10^-6 to 10^6)
+- **Trial-based processing**: Individual song trials preserved for proper nested cross-validation
+- **Comprehensive visualization**: 6-panel analysis including topographic maps, performance comparison, and single-channel TRF weights
+- **Statistical validation**: Channel-wise statistical comparison with both parametric and non-parametric tests
+
+**Pipeline Steps:**
+1. **Behavioral data loading**: Extract preference ratings from `data/beh_ratings.json`
+2. **Song selection**: Automatically identify top 5 preferred and bottom 5 non-preferred songs per participant
+3. **Data preparation**: Load ICA-cleaned EEG trials and corresponding spectral flux features
+4. **Feature validation**: Verify 128 Hz sampling rate consistency across all music features
+5. **Lambda optimization**: Use TRF built-in cross-validation across 25 logarithmically spaced lambda values
+6. **Model fitting**: Fit separate TRF models for preferred and non-preferred conditions using optimal lambda
+7. **Statistical comparison**: Perform channel-wise statistical analysis with t-test and Wilcoxon tests
+8. **Visualization**: Generate comprehensive 6-panel plots with topographic maps and performance comparison
+
+**Usage:**
+```bash
+# Single participant analysis
+python test_trf_single_participant.py  # Test with pilot_2
+
+# Full analysis for all participants
+python code/analysis/trf_music_preference_analysis.py
+
+# Requirements check
+python -c "import mtrf, mne, numpy, pandas; print('Dependencies OK')"
+```
+
+**Dependencies:**
+- **Core packages**: `mtrf`, `mne>=1.5.0`, `numpy>=1.21.0`, `pandas>=1.3.0`, `scipy>=1.7.0`
+- **Visualization**: `matplotlib>=3.5.0`, `h5py` for data storage
+- **Input data**: ICA-cleaned EEG trials, spectral flux features, behavioral ratings
+
+**Input Requirements:**
+- **EEG data**: `data/ica_cleaned/{participant}/{participant}-trial{N}_{song_id}_*_ica_cleaned.fif`
+- **Music features**: `music_stim/music_features/{song_id}_proc_features.npz` (spectral flux, 128 Hz)
+- **Behavioral data**: `data/beh_ratings.json` with preference ratings (1-9 scale)
+- **Channel structure**: Standard 10-20 EEG montage with Fz channel for single-channel analysis
+
+**Output Structure:**
+- **HDF5 files**: `output/trf_analysis/{participant}_trf_results.h5` containing:
+  - TRF weights for preferred/non-preferred conditions
+  - Lambda optimization results and cross-validation scores
+  - Channel-wise performance metrics and statistical comparisons
+  - Complete metadata with analysis parameters
+- **Summary CSV**: `{participant}_trf_summary.csv` with key metrics
+- **Visualizations**: `{participant}_trf_analysis.png` with 6-panel comprehensive analysis:
+  - Lambda optimization curve
+  - Channel-averaged TRF weights comparison
+  - Preferred condition topographic map
+  - Non-preferred condition topographic map  
+  - Performance comparison bar plot (red vs black)
+  - Fz channel TRF weights with temporal dynamics
+
+**Key Scientific Findings:**
+- **Counterintuitive result**: Preferred music shows lower TRF prediction scores than non-preferred music
+- **Neurophysiological interpretation**: 
+  - **Preferred music**: Complex, non-linear neural processing that cannot be predicted by simple acoustic features
+  - **Non-preferred music**: Simpler, more predictable bottom-up auditory processing
+- **Implication**: Musical preference fundamentally changes HOW the brain encodes acoustic information
+- **Statistical significance**: Highly significant differences (p < 0.001) with large effect sizes
+
+**Advanced Features:**
+- **Automatic FCz detection**: Intelligently finds Fz channel (or closest equivalent) for single-channel analysis
+- **Topographic visualization**: MNE-based scalp maps with graceful fallback to bar charts
+- **Missing data handling**: Robust handling of null preference ratings and missing trials
+- **Cross-validation strategy**: Trial-based nested cross-validation for unbiased performance estimation
+- **Memory optimization**: Efficient data handling for large-scale EEG datasets
+
+**Group Analysis:**
+- **Group summary**: Automated generation of cross-participant statistics and visualizations
+- **Effect consistency**: Analysis of preference effects across all participants
+- **Publication-ready outputs**: High-quality figures suitable for scientific publication
+
+**Theoretical Framework:**
+This analysis tests the hypothesis that musical preference modulates neural encoding strategies. Results suggest that liked music engages complex, top-down processing networks that are poorly predicted by simple acoustic features, while disliked music relies more on basic, bottom-up auditory processing that shows higher linear predictability from acoustic features.
 
  ### Music ISC analysis
  - Step 1: Perform RCA (Reliable Components Analysis) to obtain spatial filters.

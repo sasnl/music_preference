@@ -35,13 +35,15 @@ def create_preference_dataframe(data):
     
     for subject in preference_data:
         for song_id, rating in preference_data[subject].items():
-            ratings_list.append({
-                'subject': subject,
-                'song_id': song_id,
-                'rating': rating,
-                'artist': int(song_id.split('-')[0]),  # Extract artist number as int
-                'song_num': int(song_id.split('-')[1])  # Extract song number as int
-            })
+            # Skip null/None ratings
+            if rating is not None:
+                ratings_list.append({
+                    'subject': subject,
+                    'song_id': song_id,
+                    'rating': rating,
+                    'artist': int(song_id.split('-')[0]),  # Extract artist number as int
+                    'song_num': int(song_id.split('-')[1])  # Extract song number as int
+                })
     
     return pd.DataFrame(ratings_list)
 
