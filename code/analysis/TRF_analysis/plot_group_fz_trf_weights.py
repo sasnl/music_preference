@@ -15,6 +15,8 @@ import h5py
 import pandas as pd
 from pathlib import Path
 import logging
+import mne
+from scipy.stats import ttest_rel
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -51,19 +53,19 @@ def load_participant_fz_weights(participant, output_dir):
             
             fz_weights = {}
             
-            # Load TRF weights for both conditions
+            # Load Fisher z-scored TRF weights for both conditions
             for condition in ['preferred', 'nonpreferred']:
                 if condition in f:
-                    weights = f[condition]['weights'][:]  # Shape: (1, 66, 32) = (features, time, channels)
-                    times = f[condition]['times'][:]      # Shape: (66,)
+                    weights = f[condition]['weights_fisher_z'][:]  # Use Fisher z-scored weights
+                    times = f[condition]['times'][:]      # Shape: (104,)
                     
-                    # Extract Fz channel weights from shape (1, 66, 32) -> (66,)
+                    # Extract Fz channel weights from shape (1, 104, 32) -> (104,)
                     # weights[0, :, fz_channel] gives us the time series for Fz
                     fz_weights[condition] = weights[0, :, fz_channel]
                     fz_weights['times'] = times
                     
                     # Debug: print shapes
-                    logger.info(f"{participant} {condition}: weights shape {weights.shape} -> "
+                    logger.info(f"{participant} {condition}: Fisher z-scored weights shape {weights.shape} -> "
                                f"fz_weights shape {fz_weights[condition].shape}")
                     
             return fz_weights
@@ -71,6 +73,155 @@ def load_participant_fz_weights(participant, output_dir):
     except Exception as e:
         logger.error(f"Error loading {participant} data: {e}")
         return None
+
+def load_group_channel_cv_scores(output_dir):
+    """
+    Load per-channel CV scores from all participants for topographic analysis.
+    
+    Parameters:
+    -----------
+    output_dir : Path
+        Directory containing TRF results
+        
+    Returns:
+    --------
+    group_data : dict
+        Dictionary containing per-channel CV scores and channel info for all participants
+    """
+    participants = ['pilot_1', 'pilot_2', 'pilot_3', 'pilot_4', 'pilot_5']
+    
+    all_cv_preferred = []
+    all_cv_nonpreferred = []
+    valid_participants = []
+    channel_names = None
+    
+    logger.info("Loading per-channel CV scores from all participants for topographic analysis...")
+    
+    for participant in participants:
+        h5_file = output_dir / f"{participant}_trf_results.h5"
+        
+        if not h5_file.exists():
+            logger.warning(f"No results file found for {participant}")
+            continue
+            
+        try:
+            with h5py.File(h5_file, 'r') as f:
+                # Get per-channel CV scores from statistical_comparison
+                if 'statistical_comparison' in f:
+                    stat_group = f['statistical_comparison']
+                    if 'performance_preferred' in stat_group and 'performance_nonpreferred' in stat_group:
+                        cv_pref_channels = stat_group['performance_preferred'][:]
+                        cv_nonpref_channels = stat_group['performance_nonpreferred'][:]
+                        
+                        all_cv_preferred.append(cv_pref_channels)
+                        all_cv_nonpreferred.append(cv_nonpref_channels)
+                        valid_participants.append(participant)
+                        
+                        # Get channel names from root attributes
+                        if channel_names is None and 'channel_names' in f.attrs:
+                            channel_names = f.attrs['channel_names']
+                        
+                        logger.info(f"✓ Loaded per-channel CV scores for {participant}: "
+                                  f"Shape {cv_pref_channels.shape}, "
+                                  f"Preferred mean={np.mean(cv_pref_channels):.4f}, "
+                                  f"Non-preferred mean={np.mean(cv_nonpref_channels):.4f}")
+                    else:
+                        logger.warning(f"Missing per-channel performance data for {participant}")
+                else:
+                    logger.warning(f"Missing statistical_comparison data for {participant}")
+                    
+        except Exception as e:
+            logger.error(f"Error loading {participant} per-channel CV scores: {e}")
+            continue
+    
+    if len(all_cv_preferred) == 0:
+        logger.error("No valid per-channel CV score data found!")
+        return None
+    
+    # Convert to arrays: (participants, channels)
+    all_cv_preferred = np.array(all_cv_preferred)
+    all_cv_nonpreferred = np.array(all_cv_nonpreferred)
+    
+    # Average across participants: (channels,)
+    group_cv_preferred = np.mean(all_cv_preferred, axis=0)
+    group_cv_nonpreferred = np.mean(all_cv_nonpreferred, axis=0)
+    
+    return {
+        'all_cv_preferred': all_cv_preferred,
+        'all_cv_nonpreferred': all_cv_nonpreferred,
+        'group_cv_preferred': group_cv_preferred,
+        'group_cv_nonpreferred': group_cv_nonpreferred,
+        'participants': valid_participants,
+        'channel_names': channel_names
+    }
+
+def create_topographic_plot(ax, cv_scores, channel_names, title, cmap='RdBu_r'):
+    """
+    Create a topographic plot of CV scores.
+    
+    Parameters:
+    -----------
+    ax : matplotlib.axes.Axes
+        Axes to plot on
+    cv_scores : np.ndarray
+        CV scores for each channel
+    channel_names : list
+        List of channel names
+    title : str
+        Plot title
+    cmap : str
+        Colormap name
+    """
+    try:
+        # Create a simple montage for EEG channels
+        ch_names_list = list(channel_names) if channel_names is not None else [f'CH{i}' for i in range(len(cv_scores))]
+        
+        # Create montage - try standard 10-20 first
+        try:
+            montage = mne.channels.make_standard_montage('standard_1020')
+            # Filter to available channels
+            available_channels = [ch for ch in ch_names_list if ch in montage.ch_names]
+            if len(available_channels) < len(ch_names_list) // 2:
+                # If less than half channels available, use biosemi64
+                montage = mne.channels.make_standard_montage('biosemi64')
+                available_channels = [ch for ch in ch_names_list if ch in montage.ch_names]
+        except:
+            # Fallback to a basic layout
+            montage = None
+            available_channels = ch_names_list
+        
+        # Create info object
+        info = mne.create_info(available_channels, 1000, 'eeg')
+        if montage is not None:
+            info.set_montage(montage)
+        
+        # Filter cv_scores to available channels
+        if len(available_channels) == len(cv_scores):
+            scores_to_plot = cv_scores
+        else:
+            # Map available channels to original indices
+            channel_indices = [ch_names_list.index(ch) for ch in available_channels if ch in ch_names_list]
+            scores_to_plot = cv_scores[channel_indices] if len(channel_indices) > 0 else cv_scores
+        
+        # Create topographic plot
+        im, _ = mne.viz.plot_topomap(scores_to_plot, info, axes=ax, show=False, 
+                                   cmap=cmap, contours=6, show_names=True, 
+                                   names=available_channels, size=3)
+        
+        ax.set_title(title, fontweight='bold')
+        
+        # Add colorbar
+        cbar = plt.colorbar(im, ax=ax, shrink=0.8)
+        cbar.set_label('CV Score (R²)', rotation=270, labelpad=20)
+        
+    except Exception as e:
+        # Fallback: simple text display
+        logger.warning(f"Could not create topographic plot: {e}. Using fallback.")
+        ax.text(0.5, 0.5, f'{title}\n\nMean CV: {np.mean(cv_scores):.4f}\nStd: {np.std(cv_scores):.4f}', 
+                ha='center', va='center', transform=ax.transAxes, fontsize=12,
+                bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
+        ax.set_title(title, fontweight='bold')
+        ax.axis('off')
 
 def plot_group_fz_weights(output_dir):
     """
@@ -128,116 +279,129 @@ def plot_group_fz_weights(output_dir):
     logger.info(f"Group analysis: {len(valid_participants)} participants")
     logger.info(f"Time range: {times_ms[0]:.1f} to {times_ms[-1]:.1f} ms")
     
-    # Create the plot
-    plt.figure(figsize=(12, 8))
+    # Load per-channel CV scores for topographic plots
+    topo_data = load_group_channel_cv_scores(output_dir)
     
-    # Plot mean ± SEM with shaded error regions
-    plt.plot(times_ms, mean_preferred, color='red', linewidth=3, label='Preferred', alpha=0.9)
-    plt.fill_between(times_ms, mean_preferred - sem_preferred, mean_preferred + sem_preferred, 
-                     color='red', alpha=0.2)
+    # Create comprehensive figure with subplots
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle(f'Group TRF Analysis Summary (n={len(valid_participants)})', 
+                 fontsize=18, fontweight='bold')
     
-    plt.plot(times_ms, mean_nonpreferred, color='black', linewidth=3, label='Non-preferred', alpha=0.9)
-    plt.fill_between(times_ms, mean_nonpreferred - sem_nonpreferred, mean_nonpreferred + sem_nonpreferred, 
-                     color='black', alpha=0.2)
+    # 1. Fz TRF Weights Time Series (top left)
+    ax = axes[0, 0]
+    ax.plot(times_ms, mean_preferred, color='red', linewidth=3, label='Preferred', alpha=0.9)
+    ax.fill_between(times_ms, mean_preferred - sem_preferred, mean_preferred + sem_preferred, 
+                    color='red', alpha=0.2)
     
-    # Customize plot
-    plt.xlabel('Time (ms)', fontsize=14, fontweight='bold')
-    plt.ylabel('TRF Weight (a.u.)', fontsize=14, fontweight='bold')
-    plt.title(f'Group-Averaged Fz TRF Weights (n={len(valid_participants)})', 
-              fontsize=16, fontweight='bold')
+    ax.plot(times_ms, mean_nonpreferred, color='black', linewidth=3, label='Non-preferred', alpha=0.9)
+    ax.fill_between(times_ms, mean_nonpreferred - sem_nonpreferred, mean_nonpreferred + sem_nonpreferred, 
+                    color='black', alpha=0.2)
     
-    # Add reference lines
-    plt.axhline(0, color='gray', linestyle='-', alpha=0.5, linewidth=1)
-    plt.axvline(0, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+    ax.set_xlabel('Time (ms)', fontweight='bold')
+    ax.set_ylabel('Fisher z-score', fontweight='bold')
+    ax.set_title('Fz Channel TRF Weights (Fisher z-scored)', fontweight='bold')
+    ax.axhline(0, color='gray', linestyle='-', alpha=0.5, linewidth=1)
+    ax.axvline(0, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+    ax.grid(True, alpha=0.3)
+    ax.legend()
     
-    # Add grid and legend
-    plt.grid(True, alpha=0.3)
-    plt.legend(fontsize=12, loc='best')
+    # Set limits for Fz plot
+    mean_range = max(np.max(np.abs(mean_preferred)), np.max(np.abs(mean_nonpreferred)))
+    sem_range = max(np.max(sem_preferred), np.max(sem_nonpreferred))
+    y_max = (mean_range + sem_range) * 1.3
+    ax.set_ylim(-y_max, y_max)
     
-    # Set limits for better visualization
-    y_max = max(np.max(np.abs(mean_preferred)), np.max(np.abs(mean_nonpreferred))) * 2
-    plt.ylim(-y_max, y_max)
+    # 2. Topographic Plot - Preferred Condition CV Scores (top right)
+    if topo_data is not None:
+        ax = axes[0, 1]
+        create_topographic_plot(ax, topo_data['group_cv_preferred'], 
+                               topo_data['channel_names'], 
+                               'Preferred Music CV Scores', cmap='Reds')
+    else:
+        ax = axes[0, 1]
+        ax.text(0.5, 0.5, 'Per-channel CV scores\nnot available', ha='center', va='center', 
+               transform=ax.transAxes, fontsize=12)
+        ax.set_title('Preferred Music CV Scores')
+    
+    # 3. Topographic Plot - Non-preferred Condition CV Scores (bottom left)
+    if topo_data is not None:
+        ax = axes[1, 0]
+        create_topographic_plot(ax, topo_data['group_cv_nonpreferred'], 
+                               topo_data['channel_names'], 
+                               'Non-preferred Music CV Scores', cmap='Blues')
+    else:
+        ax = axes[1, 0]
+        ax.text(0.5, 0.5, 'Per-channel CV scores\nnot available', ha='center', va='center', 
+               transform=ax.transAxes, fontsize=12)
+        ax.set_title('Non-preferred Music CV Scores')
+    
+    # 4. Group Statistics Summary (bottom right)
+    ax = axes[1, 1]
+    ax.axis('off')  # Turn off axes for text summary
     
     # Add participant information
-    plt.text(0.02, 0.98, f'Participants: {", ".join(valid_participants)}', 
-             transform=plt.gca().transAxes, fontsize=10, verticalalignment='top',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    summary_text = f'Participants: {", ".join(valid_participants)}\n'
+    summary_text += f'Time range: {times_ms[0]:.1f} to {times_ms[-1]:.1f} ms\n'
+    summary_text += f'Total time points: {len(times_ms)}\n\n'
     
-    # Add statistical information
-    # Compute t-test between conditions at each time point
-    from scipy.stats import ttest_rel
+    if topo_data is not None:
+        mean_pref = np.mean(topo_data['group_cv_preferred'])
+        mean_nonpref = np.mean(topo_data['group_cv_nonpreferred'])
+        summary_text += f'Mean CV Score (Preferred): {mean_pref:.4f}\n'
+        summary_text += f'Mean CV Score (Non-preferred): {mean_nonpref:.4f}\n'
+        summary_text += f'Mean Difference: {mean_pref - mean_nonpref:.4f}\n\n'
+        summary_text += f'Channels analyzed: {len(topo_data["group_cv_preferred"])}\n'
     
-    t_stats = []
-    p_values = []
+    ax.text(0.1, 0.9, summary_text, transform=ax.transAxes, fontsize=12,
+            verticalalignment='top', fontfamily='monospace',
+            bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgray', alpha=0.8))
     
-    for i in range(len(times_ms)):
-        t_stat, p_val = ttest_rel(all_weights_preferred[:, i], all_weights_nonpreferred[:, i])
-        t_stats.append(t_stat)
-        p_values.append(p_val)
-    
-    p_values = np.array(p_values)
-    
-    # Find significant time points (p < 0.05)
-    sig_times = times_ms[p_values < 0.05]
-    
-    if len(sig_times) > 0:
-        plt.text(0.02, 0.02, f'Significant time points (p<0.05): {len(sig_times)} / {len(times_ms)}', 
-                 transform=plt.gca().transAxes, fontsize=10, verticalalignment='bottom',
-                 bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.8))
-        
-        # Highlight significant regions
-        sig_mask = p_values < 0.05
-        if np.any(sig_mask):
-            y_min, y_max = plt.ylim()
-            plt.fill_between(times_ms, y_min, y_max, where=sig_mask, 
-                           color='yellow', alpha=0.2, label='p < 0.05')
-    
+    # Adjust layout and save
     plt.tight_layout()
     
-    # Save plot
-    output_file = output_dir / "group_fz_trf_weights.png"
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    # Save comprehensive plot
+    output_file = output_dir / "group_fz_trf_comprehensive.png"
+    fig.savefig(output_file, dpi=300, bbox_inches='tight')
     plt.show()
     
     logger.info(f"Saved group Fz TRF weights plot to {output_file}")
     
-    # Save statistical results
-    stats_df = pd.DataFrame({
+    # Save Fz time series data
+    fz_data_df = pd.DataFrame({
         'time_ms': times_ms,
         'mean_preferred': mean_preferred,
         'sem_preferred': sem_preferred,
         'mean_nonpreferred': mean_nonpreferred,
-        'sem_nonpreferred': sem_nonpreferred,
-        't_statistic': t_stats,
-        'p_value': p_values,
-        'significant': p_values < 0.05
+        'sem_nonpreferred': sem_nonpreferred
     })
     
-    stats_file = output_dir / "group_fz_trf_statistics.csv"
-    stats_df.to_csv(stats_file, index=False)
-    logger.info(f"Saved statistical analysis to {stats_file}")
+    fz_file = output_dir / "group_fz_trf_timeseries.csv"
+    fz_data_df.to_csv(fz_file, index=False)
+    logger.info(f"Saved Fz time series data to {fz_file}")
     
-    # Print summary statistics
+    # Print summary
     print(f"\n{'='*60}")
     print("GROUP Fz TRF WEIGHTS SUMMARY")
     print(f"{'='*60}")
     print(f"Participants analyzed: {len(valid_participants)}")
     print(f"Time range: {times_ms[0]:.1f} to {times_ms[-1]:.1f} ms")
     print(f"Total time points: {len(times_ms)}")
-    print(f"Significant time points (p<0.05): {np.sum(p_values < 0.05)}")
-    print(f"Percentage significant: {np.sum(p_values < 0.05) / len(p_values) * 100:.1f}%")
+    
+    if topo_data is not None:
+        print(f"Channels analyzed: {len(topo_data['group_cv_preferred'])}")
+        print(f"Mean CV Score (Preferred): {np.mean(topo_data['group_cv_preferred']):.4f}")
+        print(f"Mean CV Score (Non-preferred): {np.mean(topo_data['group_cv_nonpreferred']):.4f}")
     
     # Peak analysis
     max_diff_idx = np.argmax(np.abs(mean_preferred - mean_nonpreferred))
     max_diff_time = times_ms[max_diff_idx]
     max_diff_value = mean_preferred[max_diff_idx] - mean_nonpreferred[max_diff_idx]
     
-    print(f"\nLargest difference:")
+    print(f"\nLargest Fz difference:")
     print(f"Time: {max_diff_time:.1f} ms")
     print(f"Difference: {max_diff_value:.6f} (Preferred - Non-preferred)")
-    print(f"p-value at peak: {p_values[max_diff_idx]:.6f}")
     
-    return valid_participants, stats_df
+    return valid_participants, fz_data_df
 
 def main():
     """Main function to create group Fz TRF weights plot."""

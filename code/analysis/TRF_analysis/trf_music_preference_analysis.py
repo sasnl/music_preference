@@ -139,6 +139,9 @@ class TRFMusicPreferenceAnalysis:
         eeg_file = eeg_files[0]
         raw = mne.io.read_raw_fif(eeg_file, preload=True, verbose=False)
         
+        # Apply 1-15 Hz bandpass filter for TRF analysis
+        raw.filter(l_freq=1.0, h_freq=15.0, fir_design='firwin', verbose=False)
+        
         # Get EEG channels only (exclude non-EEG channels)
         eeg_picks = mne.pick_types(raw.info, eeg=True, exclude='bads')
         eeg_data = raw.get_data(picks=eeg_picks)
@@ -408,7 +411,11 @@ class TRFMusicPreferenceAnalysis:
             final_model.train(stim_all, resp_all, sfreq, self.tmin, self.tmax, lambda_val)
             
         except Exception as e:
-            logger.warning(f"Trial-based crossval failed: {e}. Using concatenated data.")
+            logger.warning(f"Trial-based crossval failed: {type(e).__name__}: {e}")
+            logger.warning(f"Data info - Stim trials: {len(stim_trials)}, shapes: {[s.shape for s in stim_trials[:3]]}")
+            logger.warning(f"Data info - Resp trials: {len(resp_trials)}, shapes: {[r.shape for r in resp_trials[:3]]}")
+            logger.warning(f"Parameters - sfreq: {sfreq}, tmin: {self.tmin}, tmax: {self.tmax}, lambda: {lambda_val}")
+            logger.warning("Using concatenated data fallback.")
             
             # Fallback: concatenate trials and use traditional CV
             stim_concat = np.concatenate(stim_trials, axis=0)
@@ -446,6 +453,79 @@ class TRFMusicPreferenceAnalysis:
         logger.debug(f"TRF model CV score: {cv_score:.4f}")
         
         return final_model, cv_score
+
+    def _fisher_zscore_trf_weights(self, weights):
+        """
+        Apply Fisher z-score normalization to TRF weights for each channel within subject.
+        
+        Fisher z-transformation: z = 0.5 * ln((1+r)/(1-r)) where r is the correlation
+        For TRF weights, we first normalize to [-1, 1] range, then apply Fisher z-transform.
+        
+        Parameters:
+        -----------
+        weights : np.ndarray
+            TRF weights with shape (features, time, channels) or (time, channels)
+            
+        Returns:
+        --------
+        weights_fisher_z : np.ndarray
+            Fisher z-scored weights with same shape as input
+        """
+        weights_fisher_z = weights.copy()
+        
+        if weights.ndim == 3:
+            # Shape: (features, time, channels)
+            n_features, n_times, n_channels = weights.shape
+            
+            for ch in range(n_channels):
+                # Get all time points for this channel across all features
+                channel_data = weights[:, :, ch]
+                
+                # Normalize to [-1, 1] range for this channel
+                ch_min = np.min(channel_data)
+                ch_max = np.max(channel_data)
+                if ch_max > ch_min:
+                    # Scale to [-0.99, 0.99] to avoid infinite Fisher z values
+                    normalized = 2 * (channel_data - ch_min) / (ch_max - ch_min) - 1
+                    normalized = np.clip(normalized, -0.99, 0.99)
+                    
+                    # Apply Fisher z-transformation
+                    weights_fisher_z[:, :, ch] = 0.5 * np.log((1 + normalized) / (1 - normalized))
+                else:
+                    weights_fisher_z[:, :, ch] = 0  # Handle case where all values are the same
+                    
+        elif weights.ndim == 2:
+            # Shape: (time, channels)
+            n_times, n_channels = weights.shape
+            
+            for ch in range(n_channels):
+                # Get all time points for this channel
+                channel_data = weights[:, ch]
+                
+                # Normalize to [-1, 1] range for this channel
+                ch_min = np.min(channel_data)
+                ch_max = np.max(channel_data)
+                if ch_max > ch_min:
+                    # Scale to [-0.99, 0.99] to avoid infinite Fisher z values
+                    normalized = 2 * (channel_data - ch_min) / (ch_max - ch_min) - 1
+                    normalized = np.clip(normalized, -0.99, 0.99)
+                    
+                    # Apply Fisher z-transformation
+                    weights_fisher_z[:, ch] = 0.5 * np.log((1 + normalized) / (1 - normalized))
+                else:
+                    weights_fisher_z[:, ch] = 0  # Handle case where all values are the same
+        else:
+            # 1D case - apply Fisher z-transform to entire array
+            w_min = np.min(weights)
+            w_max = np.max(weights)
+            if w_max > w_min:
+                normalized = 2 * (weights - w_min) / (w_max - w_min) - 1
+                normalized = np.clip(normalized, -0.99, 0.99)
+                weights_fisher_z = 0.5 * np.log((1 + normalized) / (1 - normalized))
+            else:
+                weights_fisher_z = np.zeros_like(weights)
+        
+        return weights_fisher_z
 
     def analyze_participant(self, participant):
         """
@@ -505,8 +585,12 @@ class TRFMusicPreferenceAnalysis:
             model, cv_score = self._fit_trf_model(
                 data[condition], data['sfreq'], best_lambda)
             
+            # Apply Fisher z-score normalization to TRF weights per channel
+            weights_fisher_z = self._fisher_zscore_trf_weights(model.weights)
+            
             results['models'][condition] = {
-                'weights': model.weights,
+                'weights': model.weights,  # Original weights
+                'weights_fisher_z': weights_fisher_z,  # Fisher z-scored weights
                 'bias': model.bias,
                 'times': model.times
             }
@@ -626,6 +710,7 @@ class TRFMusicPreferenceAnalysis:
                 if condition in results['models']:
                     cond_group = f.create_group(condition)
                     cond_group.create_dataset('weights', data=results['models'][condition]['weights'])
+                    cond_group.create_dataset('weights_fisher_z', data=results['models'][condition]['weights_fisher_z'])
                     cond_group.create_dataset('times', data=results['models'][condition]['times'])
                     cond_group.attrs['cv_score'] = results['performance'][condition]['cv_score']
                     cond_group.attrs['n_samples'] = results['performance'][condition]['n_samples']
@@ -712,12 +797,12 @@ class TRFMusicPreferenceAnalysis:
         ax.legend()
         ax.grid(True, alpha=0.3)
         
-        # 2. TRF weights comparison
+        # 2. TRF weights comparison (using Fisher z-scored weights)
         ax = axes[0, 1]
         for condition in ['preferred', 'nonpreferred']:
             if condition in results['models']:
                 times = results['models'][condition]['times']
-                weights = results['models'][condition]['weights']
+                weights = results['models'][condition]['weights_fisher_z']  # Use Fisher z-scored weights
                 
                 # Handle different weight shapes: (features, time, channels) or (time, channels)
                 if weights.ndim == 3:
@@ -733,18 +818,29 @@ class TRFMusicPreferenceAnalysis:
                 ax.plot(times * 1000, mean_weights, label=condition.capitalize(), linewidth=2)
         
         ax.set_xlabel('Time (ms)')
-        ax.set_ylabel('TRF Weight (a.u.)')
-        ax.set_title('TRF Weights (Channel Average)')
+        ax.set_ylabel('Fisher z-score')
+        ax.set_title('TRF Weights (Channel Average, Fisher z-scored)')
         ax.legend()
         ax.grid(True, alpha=0.3)
         ax.axhline(0, color='black', linestyle='-', alpha=0.5)
         ax.axvline(0, color='black', linestyle='--', alpha=0.5)
         
+        # Calculate consistent color scale range for topographic plots
+        vmin_topo, vmax_topo = None, None
+        if ('statistical_comparison' in results and 
+            'performance_preferred' in results['statistical_comparison'] and 
+            'performance_nonpreferred' in results['statistical_comparison']):
+            scores_pref = results['statistical_comparison']['performance_preferred']
+            scores_nonpref = results['statistical_comparison']['performance_nonpreferred']
+            all_scores = np.concatenate([scores_pref, scores_nonpref])
+            vmin_topo, vmax_topo = np.min(all_scores), np.max(all_scores)
+        
         # 3. Topography - Preferred condition TRF scores
         ax = axes[0, 2]
         if 'statistical_comparison' in results and 'performance_preferred' in results['statistical_comparison']:
             scores_pref = results['statistical_comparison']['performance_preferred']
-            self._plot_topography(ax, scores_pref, results['channel_names'], 'Preferred TRF Scores', 'Reds')
+            self._plot_topography(ax, scores_pref, results['channel_names'], 'Preferred TRF Scores', 'Reds', 
+                                vmin=vmin_topo, vmax=vmax_topo)
         else:
             ax.text(0.5, 0.5, 'Channel-wise scores\nnot available', ha='center', va='center', 
                    transform=ax.transAxes, fontsize=12)
@@ -754,7 +850,8 @@ class TRFMusicPreferenceAnalysis:
         ax = axes[1, 0]
         if 'statistical_comparison' in results and 'performance_nonpreferred' in results['statistical_comparison']:
             scores_nonpref = results['statistical_comparison']['performance_nonpreferred']
-            self._plot_topography(ax, scores_nonpref, results['channel_names'], 'Non-preferred TRF Scores', 'Greys')
+            self._plot_topography(ax, scores_nonpref, results['channel_names'], 'Non-preferred TRF Scores', 'Greys', 
+                                vmin=vmin_topo, vmax=vmax_topo)
         else:
             ax.text(0.5, 0.5, 'Channel-wise scores\nnot available', ha='center', va='center', 
                    transform=ax.transAxes, fontsize=12)
@@ -824,7 +921,7 @@ class TRFMusicPreferenceAnalysis:
             for condition in ['preferred', 'nonpreferred']:
                 if condition in results['models']:
                     times = results['models'][condition]['times']
-                    weights = results['models'][condition]['weights']
+                    weights = results['models'][condition]['weights_fisher_z']  # Use Fisher z-scored weights
                     
                     # Extract FCz channel weights
                     if weights.ndim == 3:
@@ -842,8 +939,8 @@ class TRFMusicPreferenceAnalysis:
                            label=condition.capitalize(), linewidth=2)
             
             ax.set_xlabel('Time (ms)')
-            ax.set_ylabel('TRF Weight (a.u.)')
-            ax.set_title(f'{fcz_channel_name} TRF Weights')
+            ax.set_ylabel('Fisher z-score')
+            ax.set_title(f'{fcz_channel_name} TRF Weights (Fisher z-scored)')
             ax.legend()
             ax.grid(True, alpha=0.3)
             ax.axhline(0, color='gray', linestyle='-', alpha=0.5)
@@ -863,9 +960,9 @@ class TRFMusicPreferenceAnalysis:
         
         logger.info(f"Saved visualization to {fig_file}")
     
-    def _plot_topography(self, ax, scores, channel_names, title, colormap):
+    def _plot_topography(self, ax, scores, channel_names, title, colormap, vmin=None, vmax=None):
         """
-        Plot topographic map of TRF scores using MNE.
+        Plot topographic map of TRF scores using MNE with consistent scaling.
         
         Parameters:
         -----------
@@ -879,6 +976,8 @@ class TRFMusicPreferenceAnalysis:
             Plot title
         colormap : str
             Matplotlib colormap name
+        vmin, vmax : float, optional
+            Color scale limits for consistent scaling
         """
         try:
             # Create a dummy MNE info structure for topography
@@ -888,10 +987,14 @@ class TRFMusicPreferenceAnalysis:
             montage = mne.channels.make_standard_montage('standard_1020')
             info.set_montage(montage, match_case=False, on_missing='ignore')
             
-            # Plot topography
+            # Plot topography with consistent scaling
+            vlim = None
+            if vmin is not None and vmax is not None:
+                vlim = (vmin, vmax)
             im, _ = mne.viz.plot_topomap(scores, info, axes=ax, show=False, 
                                        cmap=colormap, contours=6, 
-                                       names=None, size=3)
+                                       names=None, size=3,
+                                       vlim=vlim)
             
             ax.set_title(title, fontsize=12, fontweight='bold')
             
@@ -1012,7 +1115,7 @@ class TRFMusicPreferenceAnalysis:
         logger.info(f"Saved group summary to {group_csv}")
 
     def _create_group_visualization(self, group_df):
-        """Create group-level visualizations."""
+        """Create group-level visualizations with topographic analysis."""
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         
         # 1. Individual performance scores
@@ -1034,41 +1137,54 @@ class TRFMusicPreferenceAnalysis:
         ax.legend()
         ax.grid(True, alpha=0.3)
         
-        # 2. Performance difference distribution
-        ax = axes[0, 1]
-        if 'mean_difference' in group_df.columns:
-            differences = group_df['mean_difference'].dropna()
-            ax.hist(differences, bins=10, alpha=0.7, edgecolor='black')
-            ax.axvline(0, color='red', linestyle='--', label='No difference')
-            ax.axvline(np.mean(differences), color='blue', linestyle='-', 
-                      label=f'Mean = {np.mean(differences):.4f}')
-            ax.set_xlabel('Performance Difference (Preferred - Non-preferred)')
-            ax.set_ylabel('Count')
-            ax.set_title('Distribution of Performance Differences')
-            ax.legend()
-            ax.grid(True, alpha=0.3)
-        
-        # 3. Lambda values distribution
-        ax = axes[1, 0]
-        lambda_vals = group_df['best_lambda']
-        ax.hist(np.log10(lambda_vals), bins=10, alpha=0.7, edgecolor='black')
-        ax.set_xlabel('log₁₀(Best Lambda)')
-        ax.set_ylabel('Count')
-        ax.set_title('Distribution of Optimal Lambda Values')
-        ax.grid(True, alpha=0.3)
-        
-        # 4. Statistical significance summary
-        ax = axes[1, 1]
-        if 'ttest_p_value' in group_df.columns:
-            p_vals = group_df['ttest_p_value'].dropna()
-            significant = (p_vals < 0.05).sum()
-            non_significant = (p_vals >= 0.05).sum()
+        # 2. Load and average CV scores across participants for topographic analysis
+        try:
+            all_pref_cv, all_nonpref_cv = self._load_group_channel_cv_scores()
             
-            ax.pie([significant, non_significant], 
-                  labels=[f'Significant (p<0.05)\nn={significant}', 
-                         f'Not Significant\nn={non_significant}'],
-                  autopct='%1.1f%%', startangle=90)
-            ax.set_title('Statistical Significance Summary\n(t-test for preference effect)')
+            # Average topographic CV scores for both conditions
+            mean_pref_cv = np.mean(all_pref_cv, axis=0)  # Average across participants
+            mean_nonpref_cv = np.mean(all_nonpref_cv, axis=0)  # Average across participants
+            
+            # Calculate consistent color scale range
+            all_cv_values = np.concatenate([mean_pref_cv, mean_nonpref_cv])
+            vmin, vmax = np.min(all_cv_values), np.max(all_cv_values)
+            
+            # Average topographic CV scores for preferred music
+            ax = axes[0, 1]
+            self._create_topographic_plot(mean_pref_cv, ax, 'Preferred Music CV Scores\n(Average across participants)', 
+                                        vmin=vmin, vmax=vmax)
+            
+            # Average topographic CV scores for non-preferred music  
+            ax = axes[1, 0]
+            self._create_topographic_plot(mean_nonpref_cv, ax, 'Non-preferred Music CV Scores\n(Average across participants)', 
+                                        vmin=vmin, vmax=vmax)
+            
+        except Exception as e:
+            logger.warning(f"Could not create topographic plots: {e}")
+            # Fallback to text summary
+            ax = axes[0, 1]
+            ax.text(0.5, 0.5, 'Topographic data\nnot available', 
+                   ha='center', va='center', transform=ax.transAxes, fontsize=14)
+            ax.set_title('Preferred Music CV Scores')
+            ax.axis('off')
+            
+            ax = axes[1, 0]
+            ax.text(0.5, 0.5, 'Topographic data\nnot available', 
+                   ha='center', va='center', transform=ax.transAxes, fontsize=14)
+            ax.set_title('Non-preferred Music CV Scores')
+            ax.axis('off')
+        
+        # 3. Top 8 channels TRF weights (Fisher z-scored)
+        ax = axes[1, 1]
+        try:
+            self._plot_top_channels_trf_weights(ax, all_pref_cv, all_nonpref_cv)
+        except Exception as e:
+            logger.warning(f"Could not create top channels plot: {e}")
+            # Fallback to text summary
+            ax.text(0.5, 0.5, 'Top channels TRF\nweights not available', 
+                   ha='center', va='center', transform=ax.transAxes, fontsize=14)
+            ax.set_title('Top 8 Channels TRF Weights')
+            ax.axis('off')
         
         plt.suptitle('Group TRF Analysis Summary', fontsize=16, fontweight='bold')
         plt.tight_layout()
@@ -1079,6 +1195,133 @@ class TRFMusicPreferenceAnalysis:
         plt.close()
         
         logger.info(f"Saved group visualization to {fig_file}")
+    
+    def _load_group_channel_cv_scores(self):
+        """Load per-channel CV scores from all participants."""
+        all_pref_cv = []
+        all_nonpref_cv = []
+        
+        for participant in self.participants:
+            results_file = self.output_dir / f"{participant}_trf_results.h5"
+            if results_file.exists():
+                with h5py.File(results_file, 'r') as f:
+                    if 'statistical_comparison' in f:
+                        stat_group = f['statistical_comparison']
+                        if 'performance_preferred' in stat_group and 'performance_nonpreferred' in stat_group:
+                            pref_cv = stat_group['performance_preferred'][:]
+                            nonpref_cv = stat_group['performance_nonpreferred'][:]
+                            all_pref_cv.append(pref_cv)
+                            all_nonpref_cv.append(nonpref_cv)
+        
+        return np.array(all_pref_cv), np.array(all_nonpref_cv)
+    
+    def _create_topographic_plot(self, cv_scores, ax, title, vmin=None, vmax=None):
+        """Create topographic plot of CV scores with consistent scaling."""
+        try:
+            import mne
+            # Create standard 32-channel montage
+            montage = mne.channels.make_standard_montage('standard_1020')
+            info = mne.create_info(ch_names=montage.ch_names[:32], sfreq=128, ch_types='eeg')
+            info.set_montage(montage)
+            
+            # Create topographic plot with consistent scale
+            vlim = None
+            if vmin is not None and vmax is not None:
+                vlim = (vmin, vmax)
+            im, _ = mne.viz.plot_topomap(cv_scores, info, axes=ax, show=False, 
+                                       cmap='RdYlBu_r', contours=6,
+                                       vlim=vlim)
+            ax.set_title(title)
+            
+            # Add colorbar
+            cbar = plt.colorbar(im, ax=ax, shrink=0.8, aspect=20)
+            cbar.set_label('CV Score (R²)', rotation=270, labelpad=15)
+            
+        except ImportError:
+            # Fallback to bar plot if MNE not available
+            if vmin is not None and vmax is not None:
+                ax.set_ylim(vmin, vmax)
+            ax.bar(range(len(cv_scores)), cv_scores, alpha=0.7)
+            ax.set_xlabel('Channel Index')
+            ax.set_ylabel('CV Score (R²)')
+            ax.set_title(title)
+            ax.grid(True, alpha=0.3)
+    
+    def _plot_top_channels_trf_weights(self, ax, all_pref_cv, all_nonpref_cv):
+        """Plot averaged Fisher z-scored TRF weights for top 8 channels."""
+        # Find top 8 channels based on average CV scores
+        mean_pref_cv = np.mean(all_pref_cv, axis=0)
+        mean_nonpref_cv = np.mean(all_nonpref_cv, axis=0)
+        combined_cv = (mean_pref_cv + mean_nonpref_cv) / 2
+        top_channels = np.argsort(combined_cv)[-8:]  # Top 8 channels
+        
+        # Load and average Fisher z-scored weights for these channels
+        all_pref_weights = []
+        all_nonpref_weights = []
+        
+        for participant in self.participants:
+            results_file = self.output_dir / f"{participant}_trf_results.h5"
+            if results_file.exists():
+                with h5py.File(results_file, 'r') as f:
+                    # Check both possible locations for Fisher z-scored weights
+                    pref_weights = None
+                    nonpref_weights = None
+                    
+                    # Try nested structure first (preferred/weights_fisher_z)
+                    if 'preferred' in f and 'weights_fisher_z' in f['preferred']:
+                        pref_weights = f['preferred/weights_fisher_z'][0, :, :]  # Shape: (n_lags, n_channels)
+                        pref_weights = pref_weights.T  # Transpose to (n_channels, n_lags)
+                    
+                    if 'nonpreferred' in f and 'weights_fisher_z' in f['nonpreferred']:
+                        nonpref_weights = f['nonpreferred/weights_fisher_z'][0, :, :]  # Shape: (n_lags, n_channels)  
+                        nonpref_weights = nonpref_weights.T  # Transpose to (n_channels, n_lags)
+                    
+                    # Fallback to top-level structure
+                    if pref_weights is None and 'weights_fisher_z_preferred' in f:
+                        pref_weights = f['weights_fisher_z_preferred'][:]
+                    if nonpref_weights is None and 'weights_fisher_z_nonpreferred' in f:
+                        nonpref_weights = f['weights_fisher_z_nonpreferred'][:]
+                    
+                    if pref_weights is not None and nonpref_weights is not None:
+                        # Average across top channels
+                        pref_avg = np.mean(pref_weights[top_channels, :], axis=0)
+                        nonpref_avg = np.mean(nonpref_weights[top_channels, :], axis=0)
+                        
+                        all_pref_weights.append(pref_avg)
+                        all_nonpref_weights.append(nonpref_avg)
+        
+        if all_pref_weights:
+            # Average across participants
+            mean_pref_weights = np.mean(all_pref_weights, axis=0)
+            mean_nonpref_weights = np.mean(all_nonpref_weights, axis=0)
+            sem_pref = np.std(all_pref_weights, axis=0) / np.sqrt(len(all_pref_weights))
+            sem_nonpref = np.std(all_nonpref_weights, axis=0) / np.sqrt(len(all_nonpref_weights))
+            
+            # Time axis (assuming -100ms to 700ms, 104 time points)
+            time_ms = np.linspace(-100, 700, len(mean_pref_weights))
+            
+            # Plot with error bars
+            ax.plot(time_ms, mean_pref_weights, 'r-', label='Preferred', linewidth=2)
+            ax.fill_between(time_ms, mean_pref_weights - sem_pref, 
+                           mean_pref_weights + sem_pref, alpha=0.3, color='red')
+            
+            ax.plot(time_ms, mean_nonpref_weights, 'k-', label='Non-preferred', linewidth=2)
+            ax.fill_between(time_ms, mean_nonpref_weights - sem_nonpref, 
+                           mean_nonpref_weights + sem_nonpref, alpha=0.3, color='black')
+            
+            ax.axhline(0, color='gray', linestyle='--', alpha=0.7)
+            ax.axvline(0, color='gray', linestyle='--', alpha=0.7)
+            ax.set_xlabel('Time (ms)')
+            ax.set_ylabel('Fisher z-scored TRF weights')
+            ax.set_title(f'Top 8 Channels TRF Weights\n(Average across participants)')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+            
+            # Add text box with channel info
+            textstr = f'Top 8 channels (indices): {top_channels}\nBased on combined CV scores'
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+            ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=8,
+                   verticalalignment='top', bbox=props)
 
 
 def main():
