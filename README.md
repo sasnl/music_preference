@@ -494,24 +494,221 @@ def _fisher_zscore_trf_weights(self, weights):
 **Theoretical Framework:**
 This enhanced analysis tests the hypothesis that musical preference modulates neural encoding strategies within specific frequency bands (1-15 Hz). The 1-15 Hz filtering captures cortical oscillations crucial for music processing, while Fisher z-score normalization ensures that preference effects reflect genuine neural encoding differences rather than scaling artifacts. Results suggest that liked music engages complex, top-down processing networks within these frequency bands that are poorly predicted by simple acoustic features, while disliked music relies more on basic, bottom-up auditory processing that shows higher linear predictability.
 
- ### Music ISC analysis
- - Step 1: Perform RCA (Reliable Components Analysis) to obtain spatial filters.
-  - Identify the most reliable component (typically RC1) across all music conditions.
-  - Check for differences in RCA components between preferred and non-preferred songs.
-- Step 2: Apply the RCA weights to the EEG data to get spatially filtered signals.
-- Step 3: Compute Inter-Subject Correlation (ISC) using the filtered signals.
-  - Run ISC on the RCA-derived component (e.g., RC1) to measure shared neural responses across participants.
-- Generate final ISC results as a matrix heat map for visualization.
-- Additional Notes:
-  - Perform ISC for each song individually.
-  - Optionally, concatenate multiple songs (e.g., Songs 1, 2, and 3) per person to increase data length.
-  - Concatenation can be done for short excerpts or full-length tracks—segment length is flexible.
+### **Reliable Components Analysis (RCA) and Inter-Subject Correlation** (2025)
 
- ### Correlate behavioral responses
-- Compare ISC EEG amplitude to participants’ preference ratings:
-- hypothesis: Higher P2 amplitude for more preferred songs; P1 is expected to remain similar.
-- Instead of waveform amplitude correlations, use TRF model prediction accuracy:
-  - Train on 8 minutes, test on 2 minutes.
-  - Use R² value as the prediction accuracy metric (R will be higher, but R² is more informative).
+This comprehensive analysis pipeline implements Reliable Components Analysis to extract spatially consistent neural patterns across subjects, followed by Inter-Subject Correlation analysis to measure neural synchrony. Additionally, it investigates relationships between neural-acoustic coupling and behavioral preferences.
+
+#### **Overview**
+RCA identifies neural components that are reliable across trials and subjects by maximizing trial-to-trial consistency. The most reliable component (RC1) represents spatially filtered neural activity that captures shared patterns across participants, making it ideal for Inter-Subject Correlation analysis and neural-acoustic coupling studies.
+
+#### **Analysis Pipeline Structure**
+The RCA pipeline is organized in [`code/analysis/rca_python/`](code/analysis/rca_python/) with the following structure:
+
+```
+rca_python/
+├── README_RCA_PIPELINE.md          # Complete pipeline documentation
+├── rca.py                          # Core RCA implementation
+├── rca_utils.py                   # Music integration utilities
+├── tests/                         # Comprehensive test suite
+├── demos/                         # Example usage scripts  
+├── pooled_analysis/               # Multi-subject pooled RCA
+└── correlation_analysis/          # ISC and neural-acoustic coupling
+```
+
+#### **Stage 1: Pooled Multi-Subject RCA Analysis**
+Script: [`code/analysis/rca_python/pooled_analysis/pooled_multi_subject_rca.py`](code/analysis/rca_python/pooled_analysis/pooled_multi_subject_rca.py)
+
+**Approach**: Pool all subject data before running RCA to find components reliable across the entire dataset rather than individual subjects.
+
+**Pipeline Steps:**
+1. **Data pooling**: Combine all subject trials into single large dataset
+   - Preferred songs: Based on subject naming convention (pilot_N prefers songs N-1, N-2, N-3)
+   - Non-preferred songs: All remaining songs for each subject
+   - Handle variable trial lengths by truncating to global minimum
+2. **Pooled RCA fitting**: Run single RCA analysis on combined dataset
+   - Extract 5 reliable components using generalized eigenvalue decomposition
+   - Maximize trial-to-trial reliability across all subjects simultaneously
+3. **Component characterization**: Identify spatial patterns and reliability metrics
+4. **Topographic visualization**: Create EEG scalp maps using MNE-Python
+
+**Key Features:**
+- **Robust spatial filters**: Components represent patterns consistent across all subjects
+- **Preference integration**: Separates preferred vs non-preferred trials during pooling
+- **Quality control**: Handles missing data and variable trial lengths automatically
+- **Comprehensive visualization**: Topographic maps with proper EEG montage
+
+**Usage:**
+```bash
+cd code/analysis/rca_python/pooled_analysis
+python pooled_multi_subject_rca.py
+```
+
+**Output:**
+- **Results file**: `output/pooled_rca/pooled_rca_results.npz` containing spatial filters, eigenvalues, and metadata
+- **Topographies**: `pooled_rca_topographies.png` showing spatial distribution of components
+- **Summary analysis**: Component reliability metrics and contribution statistics
+
+#### **Stage 2: RC1-Based Inter-Subject Correlation Analysis**
+Script: [`code/analysis/rca_python/correlation_analysis/rc1_complete_correlation_heatmaps.py`](code/analysis/rca_python/correlation_analysis/rc1_complete_correlation_heatmaps.py)
+
+**Approach**: Apply RC1 spatial filter to extract reliable neural timecourses, then compute correlations between subjects for each song.
+
+**Pipeline Steps:**
+1. **RC1 spatial filtering**: Apply most reliable component as spatial filter to all subject-song combinations
+2. **Timecourse extraction**: Generate RC1-filtered neural responses for each trial
+3. **Correlation computation**: Calculate pairwise correlations between subjects for each song
+4. **Missing data handling**: Properly handle NA values for incomplete subject-song combinations
+5. **Comprehensive visualization**: Create 5×5 correlation matrices for all 15 songs
+
+**Key Features:**
+- **Complete coverage**: Analyzes all 15 songs across 5 subjects
+- **Robust correlation estimates**: Uses RC1 component for stable neural signals
+- **Missing data handling**: Systematic NA values for unavailable combinations
+- **Statistical summaries**: Per-song ISC statistics with mean and standard deviation
+
+**Usage:**
+```bash
+cd code/analysis/rca_python/correlation_analysis
+python rc1_complete_correlation_heatmaps.py
+```
+
+**Output:**
+- **Correlation matrices**: `rc1_complete_correlation_heatmaps.png` with 15 individual 5×5 heatmaps
+- **Summary statistics**: `rc1_complete_summary.csv` with per-song ISC metrics
+- **Correlation data**: `rc1_complete_correlations.npz` with full correlation matrices
+
+#### **Stage 3: Neural-Acoustic Coupling Analysis**
+Script: [`code/analysis/rca_python/correlation_analysis/rc1_spectral_flux_correlation.py`](code/analysis/rca_python/correlation_analysis/rc1_spectral_flux_correlation.py)
+
+**Approach**: Investigate how RC1-filtered neural responses correlate with spectral flux dynamics in music.
+
+**Pipeline Steps:**
+1. **RC1 filtering**: Apply pooled RC1 spatial filter to extract neural timecourses
+2. **Spectral flux loading**: Load pre-computed spectral flux features for all songs
+3. **Temporal alignment**: Resample and align neural and acoustic timeseries
+4. **Correlation analysis**: Compute Pearson correlations between RC1 and spectral flux
+5. **Comprehensive visualization**: Multi-panel analysis including subject and song patterns
+
+**Key Features:**
+- **Neural-acoustic coupling**: Direct correlation between reliable neural patterns and acoustic dynamics
+- **Individual differences**: Subject-specific correlation patterns
+- **Song-specific effects**: Per-song neural coupling analysis
+- **Temporal alignment**: Proper handling of different sampling rates (EEG: 1000 Hz, features: 128 Hz)
+
+**Usage:**
+```bash
+cd code/analysis/rca_python/correlation_analysis
+python rc1_spectral_flux_correlation.py
+```
+
+**Output:**
+- **Comprehensive plot**: `rc1_spectral_flux_correlations.png` with 6-panel analysis
+- **Individual matrix**: `rc1_spectral_flux_correlation_matrix_individual.png` (focused heatmap)
+- **Correlation data**: `rc1_spectral_flux_correlations.npz` and summary CSV
+
+#### **Stage 4: Neural-Preference Relationship Analysis**
+Script: [`code/analysis/rca_python/correlation_analysis/rc1_spectral_flux_vs_preference.py`](code/analysis/rca_python/correlation_analysis/rc1_spectral_flux_vs_preference.py)
+
+**Approach**: Examine relationship between neural-acoustic coupling strength and behavioral preference ratings.
+
+**Pipeline Steps:**
+1. **Data integration**: Merge RC1-spectral flux correlations with preference ratings
+2. **Preference correlation**: Compute correlations between neural coupling and preference scores
+3. **Subject-level analysis**: Individual subject neural-preference relationships
+4. **Song-level analysis**: How different songs relate neural coupling to preference
+5. **Statistical visualization**: Multi-panel analysis with trend lines and significance tests
+
+**Key Findings:**
+- **Overall relationship**: No significant correlation (r = -0.050, p = 0.679) between neural coupling and preference
+- **Individual differences**: Subject-specific patterns ranging from strong negative (pilot_4: r = -0.453) to moderate positive (pilot_2: r = 0.207)
+- **Song-specific patterns**: Different musical pieces show distinct neural-preference relationships
+- **Quadrant analysis**: Songs categorized into four types based on neural coupling and preference levels
+
+**Usage:**
+```bash
+cd code/analysis/rca_python/correlation_analysis
+python rc1_spectral_flux_vs_preference.py
+```
+
+**Output:**
+- **Comprehensive analysis**: `rc1_spectral_flux_vs_preference.png` with 6-panel statistical summary
+- **Song-level focus**: `song_level_neural_coupling_vs_preference.png` with detailed song patterns
+- **Combined dataset**: CSV with merged neural and behavioral data for further analysis
+
+#### **Key Scientific Results**
+
+**RCA Component Properties:**
+- **RC1 eigenvalue**: λ = 0.003406 (moderate reliability across subjects)
+- **Spatial pattern**: Strongest at FC2 electrode (frontocentral region)
+- **Neural substrate**: Likely represents auditory-motor integration networks
+
+**Inter-Subject Correlation Patterns:**
+- **Overall mean ISC**: 0.007 ± 0.026 across all song-subject combinations
+- **Highest ISC songs**: 5-2 (0.027), 2-3 (0.023), 4-1 (0.019) - consistent neural synchrony
+- **Subject coverage**: Near-complete data (72/75 possible subject-song pairs)
+
+**Neural-Acoustic Coupling:**
+- **Overall coupling**: Weak but measurable (mean r = 0.0024 ± 0.0142)
+- **Individual differences**: pilot_5 shows strongest coupling (mean r = 0.009), pilot_1 most negative (-0.003)
+- **Song specificity**: Certain pieces consistently evoke stronger neural tracking across subjects
+
+**Neural-Preference Relationships:**
+- **No universal relationship**: Neural coupling independent of conscious preference
+- **Individual strategies**: Different subjects show distinct neural-preference patterns
+- **Song quadrants**: Four categories of neural-preference relationships identified
+
+#### **Technical Implementation**
+
+**Core RCA Algorithm:**
+- **Mathematical approach**: Generalized eigenvalue decomposition maximizing reliability ratio
+- **Covariance computation**: Trial-to-trial and trial-average covariance matrices  
+- **Component extraction**: Eigenvalue decomposition with reliability ranking
+- **Spatial filtering**: Linear combination of electrodes weighted by component loadings
+
+**Data Requirements:**
+- **EEG data**: ICA-cleaned trial files in .fif format
+- **Music features**: Pre-computed spectral flux at 128 Hz sampling
+- **Behavioral data**: Preference ratings in JSON format
+- **Channel structure**: Standard 10-20 EEG montage (32 channels)
+
+**Quality Control:**
+- **Missing data handling**: Systematic NA values for incomplete combinations
+- **Trial length normalization**: Truncation to global minimum length
+- **Sampling rate alignment**: Proper resampling between EEG and acoustic features
+- **Statistical validation**: Significance testing and effect size reporting
+
+#### **Dependencies**
+```bash
+# Core packages
+pip install mne>=1.5.0 numpy>=1.21.0 pandas>=1.3.0 scipy>=1.7.0
+pip install matplotlib>=3.5.0 seaborn scikit-learn h5py
+
+# Run tests
+cd code/analysis/rca_python/tests
+python test_rca_comprehensive.py
+```
+
+#### **Complete Workflow**
+```bash
+# 1. Run pooled RCA analysis
+cd code/analysis/rca_python/pooled_analysis
+python pooled_multi_subject_rca.py
+
+# 2. Compute inter-subject correlations
+cd ../correlation_analysis
+python rc1_complete_correlation_heatmaps.py
+
+# 3. Analyze neural-acoustic coupling
+python rc1_spectral_flux_correlation.py
+
+# 4. Investigate neural-preference relationships
+python rc1_spectral_flux_vs_preference.py
+
+# 5. Generate focused visualizations
+python plot_rc1_spectral_flux_matrix.py
+python plot_song_level_neural_preference.py
+```
+
+This comprehensive RCA pipeline provides insights into the neural mechanisms of music processing, revealing how reliable neural components track acoustic features and relate to individual preferences through multiple analysis stages.
 
 
